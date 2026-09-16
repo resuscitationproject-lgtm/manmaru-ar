@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="44" fill="#442c57"/>
+  <circle cx="200" cy="200" r="145" fill="#ffd85a" stroke="#fffdf7" stroke-width="10"/>
+  <path d="M110 220c28-66 61-99 90-99s62 33 90 99c-35-25-64-37-90-37s-55 12-90 37Z" fill="#ff806d" stroke="#442c57" stroke-width="8"/>
+  <circle cx="155" cy="229" r="17" fill="#442c57"/><circle cx="245" cy="229" r="17" fill="#442c57"/>
+  <path d="M157 273c29 25 57 25 86 0" fill="none" stroke="#442c57" stroke-width="9" stroke-linecap="round"/>
+  <path d="M72 83h18M81 74v18M310 91h18M319 82v18" stroke="#a8e5cf" stroke-width="9" stroke-linecap="round"/>
+  <text x="200" y="348" text-anchor="middle" fill="#fffdf7" font-family="sans-serif" font-size="24" font-weight="700">まんまる AR 01</text>
+</svg>
