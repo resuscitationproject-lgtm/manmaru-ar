@@ -22,3 +22,16 @@ test("イベントごとに保存領域を分離する", () => {
   assert.equal(values.has(storageKey("event-a")), true);
   assert.equal(createStampStore("event-b", storage).load().stamps["point-1"], undefined);
 });
+
+test("保存済みスタンプをリセットできる", () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key)
+  };
+  const store = createStampStore("event-a", storage);
+  store.save(addStamp(store.load(), "point-1", "2026-01-01T00:00:00.000Z"));
+  store.clear();
+  assert.equal(countValidStamps(store.load(), ["point-1"]), 0);
+});

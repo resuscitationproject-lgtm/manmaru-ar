@@ -3,7 +3,8 @@ import { addStamp, countValidStamps, createStampStore } from "./stamp-store.js";
 const $ = (selector) => document.querySelector(selector);
 const ui = {
   welcome: $("#welcome"), welcomeCharacter: $("#welcome-character"), title: $("#event-title"),
-  description: $("#event-description"), start: $("#start-button"), arView: $("#ar-view"),
+  description: $("#event-description"), start: $("#start-button"), reset: $("#reset-button"),
+  resetStatus: $("#reset-status"), arView: $("#ar-view"),
   arContainer: $("#ar-container"), eventNameSmall: $("#event-name-small"), progress: $("#progress-label"),
   close: $("#close-button"), guide: $("#guide"), guideMessage: $("#guide-message"),
   stampCard: $("#stamp-card"), discovery: $("#discovery-message"), stamp: $("#stamp-button"),
@@ -187,6 +188,20 @@ function collectStamp() {
   ui.success.hidden = false;
 }
 
+function resetStamps() {
+  const pointIds = config.points.map(({ id }) => id);
+  if (countValidStamps(progress, pointIds) === 0) {
+    ui.resetStatus.textContent = "保存されているスタンプはありません。";
+    return;
+  }
+  if (!window.confirm("この端末に保存されているスタンプをリセットしますか？")) return;
+  store.clear();
+  progress = store.load();
+  updateProgress();
+  ui.success.hidden = true;
+  ui.resetStatus.textContent = "スタンプをリセットしました。";
+}
+
 async function init() {
   try {
     config = await loadConfig();
@@ -202,6 +217,7 @@ async function init() {
     await makeScene();
     updateProgress();
     ui.start.disabled = false;
+    ui.reset.disabled = false;
     ui.start.textContent = "カメラを起動する";
   } catch (error) {
     console.error(error);
@@ -212,6 +228,7 @@ async function init() {
 }
 
 ui.start.addEventListener("click", startAr);
+ui.reset.addEventListener("click", resetStamps);
 ui.retry.addEventListener("click", () => location.reload());
 ui.close.addEventListener("click", stopAr);
 ui.stamp.addEventListener("click", collectStamp);
