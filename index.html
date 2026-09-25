@@ -3,90 +3,64 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#fff8e8" />
+    <meta name="theme-color" content="#ff7a59" />
+    <meta name="description" content="まんまる文化祭 ARスタンプラリー Phase 1" />
     <title>まんまる文化祭 ARスタンプラリー</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-      }
-    </script>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">MANMARU CULTURE FESTIVAL</p>
-          <h1>まんまる文化祭</h1>
+    <main id="app" class="app-shell">
+      <section id="welcome" class="welcome panel" aria-labelledby="event-title">
+        <p class="eyebrow">スマホで見つける、会場のひみつ</p>
+        <img id="welcome-character" class="welcome-character" alt="イベントキャラクター" />
+        <h1 id="event-title"><span class="title-line">まんまる文化祭</span><span class="title-line">ARスタンプラリー</span></h1>
+        <p id="event-description" class="lead">会場のマークにカメラを向けよう！</p>
+        <div class="steps" aria-label="遊び方">
+          <span><b>1</b> カメラを起動</span>
+          <span><b>2</b> マークを発見</span>
+          <span><b>3</b> スタンプ獲得</span>
         </div>
-        <div class="badge">AR<br />01</div>
-      </header>
-
-      <section class="intro-card" aria-labelledby="page-title">
-        <div class="intro-copy">
-          <span class="step-label">STEP 1</span>
-          <h2 id="page-title">マークを見つけて<br /><em>まるぽん</em>を呼ぼう！</h2>
-          <p>会場のARマークにカメラを向けると、子どもたちのキャラクターが飛び出します。</p>
-        </div>
-        <div class="sparkle" aria-hidden="true">✦</div>
+        <button id="start-button" class="primary-button" type="button" disabled>準備中…</button>
+        <p class="privacy-note">カメラ映像は端末内で処理され、保存・送信されません。</p>
       </section>
 
-      <section class="camera-card" aria-label="ARカメラ">
-        <div class="camera-frame">
-          <a-scene
-            id="ar-scene"
-            mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false; uiScanning: #scanning-ui; uiLoading: #loading-ui; maxTrack: 1;"
-            color-space="sRGB"
-            renderer="colorManagement: true, physicallyCorrectLights"
-            vr-mode-ui="enabled: false"
-            device-orientation-permission-ui="enabled: false"
-            embedded
-          >
-            <a-assets>
-              <img id="marpon-image" src="assets/character-marpon.png" alt="まるぽん" crossorigin="anonymous" />
-            </a-assets>
-            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-            <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
-              <a-image id="character" src="#marpon-image" position="0 0.1 0.05" width="1.1" height="1.1" transparent="true" animation="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 550; easing: easeOutElastic"></a-image>
-              <a-entity id="speech-bubble" position="0.75 0.7 0.08" visible="false">
-                <a-plane color="#fffdf7" width="1.7" height="0.8" material="shader: flat; transparent: true; opacity: 0.96"></a-plane>
-                <a-text value="まるぽんパワー！\nきらきらビーム！" color="#442c57" align="center" width="2.8" position="0 0 0.03" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-              </a-entity>
-            </a-entity>
-          </a-scene>
-          <div id="loading-ui" class="camera-message"><span class="loader"></span><span>ARカメラを準備中…</span></div>
-          <div id="scanning-ui" class="camera-message scanning-message"><span class="scan-corners"></span><strong>ARマークを探してね</strong><span>カメラをゆっくり動かそう</span></div>
-          <div id="camera-error" class="camera-message error-message" hidden></div>
-          <div class="camera-hint">TARGET 01</div>
-        </div>
-        <div class="status-row" aria-live="polite">
-          <span id="status-dot" class="status-dot"></span>
-          <span id="status-text">カメラを起動する準備ができました</span>
-        </div>
-        <button id="start-button" class="primary-button" type="button">カメラを起動する <span>→</span></button>
-      </section>
-
-      <section class="target-card">
-        <div class="target-card-heading"><span>AR TARGET</span><span class="target-number">01</span></div>
-        <div class="target-preview">
-          <img src="assets/target-demo.svg" alt="会場に設置するARマークの見本" />
+      <section id="ar-view" class="ar-view" aria-label="ARカメラ" hidden>
+        <div id="ar-container"></div>
+        <header class="top-bar">
           <div>
-            <h3>このマークを見つけよう</h3>
-            <p>会場にある「まんまるAR 01」マークをカメラに映してね。</p>
+            <p id="event-name-small" class="event-name-small"></p>
+            <p id="progress-label" class="progress-label">スタンプ 0 / 1</p>
           </div>
+          <button id="close-button" class="icon-button" type="button" aria-label="カメラを閉じる">×</button>
+        </header>
+
+        <div id="guide" class="guide" role="status" aria-live="polite">
+          <div class="scan-frame" aria-hidden="true"></div>
+          <p id="guide-message">会場のマークを枠の中に入れてね</p>
         </div>
+
+        <section id="stamp-card" class="stamp-card" aria-live="polite" hidden>
+          <p id="discovery-message" class="discovery-message">キャラクターを発見！</p>
+          <button id="stamp-button" class="primary-button stamp-button" type="button">スタンプを貯める</button>
+        </section>
+
+        <section id="success-card" class="success-card panel" aria-live="assertive" hidden>
+          <div class="stamp-seal">GET!</div>
+          <p class="eyebrow">スタンプ獲得</p>
+          <h2 id="success-title">やったね！</h2>
+          <p id="success-message"></p>
+          <button id="continue-button" class="secondary-button" type="button">カメラにもどる</button>
+        </section>
       </section>
 
-      <footer><span>PHASE 1 MOCKUP</span><span>LOCAL DATA ONLY</span></footer>
+      <section id="error-card" class="error-card panel" role="alert" hidden>
+        <h2>カメラを起動できませんでした</h2>
+        <p id="error-message">通信環境とカメラの許可を確認して、もう一度お試しください。</p>
+        <button id="retry-button" class="primary-button" type="button">もう一度試す</button>
+      </section>
     </main>
-    <script src="app.js" defer></script>
+    <script type="module" src="./js/app.js"></script>
   </body>
 </html>

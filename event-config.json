@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "event": {
+    "id": "manmaru-bunkasai-2026",
+    "name": "まんまる文化祭",
+    "title": "まんまる文化祭 ARスタンプラリー",
+    "description": "会場のマークにカメラを向けて、まるぽんを見つけよう！"
+  },
+  "ar": {
+    "targetFile": "./assets/targets.mind",
+    "filterMinCF": 0.001,
+    "filterBeta": 1000,
+    "warmupTolerance": 5,
+    "missTolerance": 5
+  },
+  "points": [
+    {
+      "id": "manmaru-01",
+      "targetIndex": 0,
+      "name": "まるぽん",
+      "characterImage": "./assets/character-marpon.png",
+      "characterAlt": "まんまる文化祭のキャラクター・まるぽん",
+      "speech": "まるぽんパワー！\nきらきらビーム！",
+      "foundMessage": "まるぽんを発見！",
+      "stampMessage": "まるぽんのスタンプを獲得しました！"
+    }
+  ],
+  "completion": {
+    "requiredStampCount": 1,
+    "message": "Phase 1クリア！ 本番版では、ここからコンプリート画面やルーレット抽選へ進みます。"
+  }
+}

@@ -1,72 +1,141 @@
-# まんまる文化祭 ARスタンプラリー（Phase 1）
+# まんまる文化祭 ARスタンプラリー — Phase 1
 
-GitHub Pagesで配信できる、MindAR + A-Frame の画像認識ARモックアップです。QRコードから `?spot=01` の専用ページを開き、カメラで会場の画像ターゲットを認識すると、まるぽんのPNGと吹き出しがAR表示されます。
+自治会・地域イベントへ横展開できる標準品を想定した、1キャラクター・1ARポイントの静的Webアプリです。QRコードからページを開き、画像ターゲットをカメラで認識するとキャラクターと必殺技の吹き出しが現れます。「スタンプを貯める」を押すと端末の `localStorage` に保存します。
+
+## Phase 1でできること
+
+- iPhone Safari / Android Chromeからカメラを起動
+- MindAR + A-Frameによる画像ターゲット認識
+- 透過PNGキャラクターと日本語吹き出しをAR表示
+- 認識中だけスタンプボタンを表示
+- イベントID・ポイントID単位でスタンプを端末保存
+- `event-config.json` と素材の差し替えによるイベント展開
+- GitHub Pagesのサブディレクトリ配信
+
+カメラ画像はブラウザ内で処理し、サーバーへ送信しません。スタンプは端末・ブラウザ単位の保存です。ブラウザの履歴やサイトデータを消すと失われ、別端末には引き継がれません。
 
 ## ファイル構成
 
 ```text
-index.html                 AR画面とA-Frame/MindARのシーン
-app.js                     spot判定、起動、targetFound/targetLostのUI制御
-styles.css                 スマホ向け画面デザイン
-assets/character-marpon.png 動作確認用の透明背景キャラクターPNG
-assets/target-demo.svg     会場に設置するターゲット画像の見本
-assets/targets.mind        MindARで生成する認識データ（要作成）
+manmaru-ar-stamp-rally/
+├── index.html
+├── event-config.json          # イベント名、ARポイント、達成条件
+├── styles.css
+├── js/
+│   ├── app.js                 # AR画面とイベント進行
+│   └── stamp-store.js         # localStorage保存（複数ポイント対応）
+├── assets/
+│   ├── targets.mind           # MindAR用の認識データ
+│   ├── target-demo.svg        # Phase 1動作確認用ターゲット
+│   └── character-marpon.png   # 透過PNGキャラクター
+└── tests/
 ```
 
-## 1. まずローカルで確認する
+Phase 1には、リポジトリに登録済みのデモターゲットと認識データを同梱しています。`target-demo.svg` を画像として書き出したものと `targets.mind` の組み合わせでテストし、本番前には必ず実際の会場掲示画像から作り直してください。
 
-カメラは `file://` では動かないため、VS CodeのLive Serverなど、HTTPSまたはlocalhostで配信します。静的サーバーでプロジェクト直下を開き、`/index.html?spot=01` にアクセスしてください。
+## ローカルで確認する
 
-最初の表示では、`assets/targets.mind` が未作成のためエラーになります。次の手順で作成します。
+ファイルを直接開く `file://` ではカメラや設定ファイルの読み込みが動きません。フォルダ内でローカルWebサーバーを起動します。
 
-## 2. MindAR Image Target Compilerでtargets.mindを作る
+```bash
+cd manmaru-ar
+npx serve .
+```
 
-1. [MindAR Image Target Compiler](https://hiukim.github.io/mind-ar-js/tools/compile) を開く。
-2. `assets/target-demo.svg` をPNGまたはJPGとして書き出してアップロードする。印刷物を使う場合は、実際に会場へ置く画像をアップロードする。
-3. 画像の特徴点が十分に表示されることを確認する。単色・余白が多すぎる画像は避ける。
-4. Compile後、ダウンロードした `targets.mind` をこのプロジェクトの `assets/targets.mind` として保存する。
-5. 実機でページを再読み込みし、画面のターゲット画像をカメラに映す。
+PCでは表示確認ができます。スマートフォン実機でカメラを使うときは、GitHub PagesなどのHTTPS環境へ公開してください。
 
-本番では `target-demo.svg` を子どもたちの絵や会場オリジナルのポスターに差し替え、その画像から `targets.mind` を再生成します。`mindar-image-target="targetIndex: 0"` と対応する1枚目のターゲットを使う設計です。
+保存処理のテストは次で実行できます。
 
-## 3. QRコードを作る
+```bash
+npm test
+```
 
-GitHub Pages公開後のURLに `?spot=01` を付けたURLをQRコード化します。
+## MindAR Image Target Compilerで `targets.mind` を作る
+
+1. 会場に掲示する画像を用意します。模様や色の変化が多く、特徴点が画像全体に分散する写真・イラストが向いています。単色背景、繰り返し模様、左右対称だけの図は避けます。
+2. [MindAR Image Targets Compiler](https://hiukim.github.io/mind-ar-js-doc/tools/compile/) をPCブラウザで開きます。
+3. ターゲット画像をドラッグ＆ドロップし、`Start` を押します。
+4. 特徴点の表示を確認します。点が少ない場合や一部に偏る場合は、画像を調整して再度コンパイルします。
+5. `Download` を押して `targets.mind` を保存します。
+6. ダウンロードしたファイルで `assets/targets.mind` を上書きします。
+7. コンパイル元の画像を印刷し、照明・距離・角度を変えて実機テストします。
+
+複数ポイント版では、使う全画像をポイント順にまとめてコンパイルします。Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始まり）に対応します。
+
+## キャラクター透過PNGを差し替える
+
+1. 背景を透明にした正方形に近いPNGを用意します（目安 1024×1024px、数MB以下）。
+2. `assets/` に配置します。例: `assets/manmaru-character.png`
+3. `event-config.json` の `characterImage` を新しいパスに変えます。
+4. `characterAlt`、`speech`、`foundMessage`、`stampMessage` もイベントに合わせて変更します。
+
+吹き出しはブラウザ内のCanvasで生成するため、日本語を画像化して準備する必要はありません。`speech` 内の `\n` で改行できます。
+
+## `event-config.json` の考え方
+
+- `event.id`: localStorageの保存領域を分ける一意なID。年度やイベントが変わる場合は必ず変更します。
+- `ar.targetFile`: Compilerで作った `.mind` ファイル。
+- `points[]`: 将来の複数キャラクター・複数ポイント用配列。Phase 1は先頭の1件を表示します。
+- `targetIndex`: `.mind` 内の画像順。先頭は `0`。
+- `completion.requiredStampCount`: コンプリートに必要な数。Phase 1は `1`。
+
+将来版では `points` をループしてARエンティティを生成し、保存済みポイント数が `requiredStampCount` に達したらコンプリート画面、その後にルーレット画面へ遷移できます。保存データはすでに複数ポイントを扱える構造です。
+
+## GitHub Pagesへ公開する
+
+1. このフォルダをGitHubリポジトリへ置きます。複数イベントを1リポジトリで管理する場合は、イベントごとにディレクトリを分けます。
+
+   ```text
+   repository-root/
+   ├── manmaru-2026/
+   ├── kurosaki-2026/
+   └── index.html
+   ```
+
+2. GitHubのリポジトリで **Settings → Pages** を開きます。
+3. **Build and deployment** で **Deploy from a branch** を選び、公開ブランチと `/ (root)` を指定します。
+4. 公開完了後、スマートフォンでHTTPSのURLを開きます。
+
+想定URLは次の形です。
 
 ```text
-https://あなたのユーザー名.github.io/リポジトリ名/?spot=01
+試作: https://resuscitationproject-lgtm.github.io/manmaru-ar/
+将来: https://ar.kitakyushu-itclub.org/manmaru-2026/
 ```
 
-複数キャラへ拡張するときは `?spot=02`、`?spot=03` のように分け、`app.js` の `characters` とHTML内の `mindar-image-target` を追加します。
+`ar.kitakyushu-itclub.org` をリポジトリのカスタムドメインに設定すれば、イベントごとのDNS設定は不要です。各イベントは同じドメイン配下のディレクトリとして運用します。
 
-## 4. GitHub Pagesで公開する
+## QRコード
 
-1. このフォルダの内容をGitHubリポジトリのルートへアップロードする。
-2. `assets/targets.mind` が含まれていることを確認する。
-3. GitHubの **Settings → Pages** を開く。
-4. **Deploy from a branch**、対象ブランチの `/ (root)` を選び、Saveする。
-5. 発行されたHTTPS URLをQRコードにする。
+GitHub Pagesで確定したイベントURLをQRコード化します。QRコードには必ず末尾の `/` まで含む本番HTTPS URLを使ってください。印刷前に、iPhoneとAndroidの標準カメラから読み取り、目的のページが直接開くことを確認します。
 
-MindARはカメラを使うため、GitHub PagesのHTTPS URLでテストしてください。
+## 実機テスト手順
 
-## 5. iPhone Safari / Android Chromeで実機テスト
+1. iPhone SafariとAndroid ChromeでQRコードを読みます。
+2. 「カメラを起動する」を押し、カメラ利用を許可します。
+3. `assets/target-demo.svg`（本番では会場掲示物）を別画面に表示するか印刷します。
+4. ターゲット全体を明るい場所で枠内に映します。
+5. キャラクターと吹き出しが追従し、スタンプボタンが現れることを確認します。
+6. スタンプを獲得してページを再読み込みし、「獲得済み」が保持されることを確認します。
+7. 低照度、逆光、斜め、距離、混雑時の回線で試します。
+8. SafariのプライベートブラウズやChromeのシークレットモードは保存が消えやすいため、本番案内では通常モードを推奨します。
 
-- URLがHTTPSであることを確認する。
-- 初回アクセス時にカメラを許可する。
-- `カメラを起動する` を押す。
-- 会場ターゲットを明るい場所で画面中央に映し、ゆっくり動かす。
-- 認識するとまるぽんと吹き出しが表示される。
-- うまく認識しない場合は、画像を大きく印刷し、光の反射・ぼけ・極端な斜め撮影を避ける。
-- iPhoneではSafariのプライベートブラウズやカメラ使用中の別アプリを避ける。
-- AndroidではChromeのサイト設定でカメラが許可されていることを確認する。
+## イベント終了後の運用
 
-## 将来の拡張ポイント
+推奨は、即時削除ではなく「公開停止 → 保管 → 削除」です。
 
-キャラクターのタップ判定は、`#character` にクリックイベントを追加する場所を用意しやすい構造です。スタンプ取得は、例えば次のように `localStorage` を使って追加できます。
+1. 終了時刻後、イベントURLの `index.html` を終了案内ページへ置き換えて公開停止します。
+2. 設定、ターゲット画像、`targets.mind`、キャラクター素材、確定URLを非公開保管します。
+3. 30〜90日後、問い合わせがなければ公開ディレクトリを削除します。
+4. 翌年再利用する場合は別の `event.id` とディレクトリ名にして複製します。前年の端末データが混ざるのを防げます。
 
-```js
-localStorage.setItem('stamp_01', 'true');
-const collected = Object.keys(localStorage).filter((key) => key.startsWith('stamp_')).length;
-```
+個人情報を収集しないPhase 1でも、素材の利用許諾と掲載期間は主催者・制作者間で確認してください。
 
-複数スタンプ化では、`characters` を増やし、各スポットの `targetIndex` とキャラクター画像・吹き出し文をデータで管理します。コンプリート判定は `collected >= requiredCount` で画面を切り替えます。
+## 現時点の制約
+
+- スタンプは端末内保存のみで、不正防止や端末間同期はありません。
+- Phase 1の画面は先頭ポイントのみ生成します。データ形式と保存処理は複数ポイント対応済みです。
+- ライブラリはCDNから読み込むため、初回起動時はインターネット接続が必要です。
+- iOSではユーザー操作からカメラを開始する必要があるため、起動ボタンを設けています。
+
+MindARの基本構成とCompiler手順は[公式ドキュメント](https://hiukim.github.io/mind-ar-js-doc/)を参照してください。
