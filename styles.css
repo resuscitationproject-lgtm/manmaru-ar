@@ -47,9 +47,11 @@ button:focus-visible { outline: 4px solid #2f78c4; outline-offset: 3px; }
 }
 
 .welcome-character {
-  width: min(52vw, 220px);
-  height: min(52vw, 220px);
+  width: min(68vw, 320px);
+  height: auto;
+  max-height: 40vh;
   object-fit: contain;
+  border-radius: 18px;
   filter: drop-shadow(0 12px 12px rgb(84 53 35 / 18%));
 }
 

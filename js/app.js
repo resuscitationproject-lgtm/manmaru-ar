@@ -212,8 +212,8 @@ async function init() {
     setEventTitle(config.event.title);
     ui.description.textContent = config.event.description;
     ui.eventNameSmall.textContent = config.event.name;
-    ui.welcomeCharacter.src = point.characterImage;
-    ui.welcomeCharacter.alt = point.characterAlt;
+    ui.welcomeCharacter.src = config.event.heroImage || point.characterImage;
+    ui.welcomeCharacter.alt = config.event.heroAlt || point.characterAlt;
     await makeScene();
     updateProgress();
     ui.start.disabled = false;

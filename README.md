@@ -30,6 +30,7 @@ manmaru-ar-stamp-rally/
 ├── assets/
 │   ├── targets.mind           # MindAR用の認識データ
 │   ├── target-demo.svg        # Phase 1動作確認用ターゲット
+│   ├── main-visual-2026.jpg    # トップ画面のメイン画像
 │   └── character-marpon.png   # 透過PNGキャラクター
 └── tests/
 ```
@@ -77,6 +78,7 @@ npm test
 ## `event-config.json` の考え方
 
 - `event.id`: localStorageの保存領域を分ける一意なID。年度やイベントが変わる場合は必ず変更します。
+- `event.heroImage`: トップ画面に表示するイベントのメイン画像。ARキャラクター画像とは独立して差し替えられます。
 - `ar.targetFile`: Compilerで作った `.mind` ファイル。
 - `points[]`: 将来の複数キャラクター・複数ポイント用配列。Phase 1は先頭の1件を表示します。
 - `targetIndex`: `.mind` 内の画像順。先頭は `0`。

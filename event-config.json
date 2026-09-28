@@ -4,7 +4,9 @@
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
     "title": "まんまる文化祭 ARスタンプラリー",
-    "description": "会場のマークにカメラを向けて、まるぽんを見つけよう！"
+    "description": "会場のマークにカメラを向けて、まるぽんを見つけよう！",
+    "heroImage": "./assets/main-visual-2026.jpg",
+    "heroAlt": "BeWith まんまる文化祭 2026年11月21日・22日 10時から16時"
   },
   "ar": {
     "targetFile": "./assets/targets.mind",
