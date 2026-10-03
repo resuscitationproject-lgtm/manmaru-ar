@@ -11,7 +11,6 @@ test("5つの原画と3Dモデルが同じ番号順に設定されている", ()
     const number = String(index + 1).padStart(2, "0");
     assert.match(point.sourceImage, new RegExp(`${number}_`));
     assert.match(point.modelFile, new RegExp(`${number}_`));
-    assert.equal(point.modelMagnification, 3);
   });
   assert.equal(config.completion.requiredStampCount, 5);
 });

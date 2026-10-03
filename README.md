@@ -74,6 +74,8 @@ Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始ま
 3. `event-config.json` の `sourceImage`、`modelFile`、`name`、各メッセージを変更します。
 4. 実機を見ながら `modelScale`、`modelPosition`、`modelRotation` を調整します。
 
+現在の5つのGLBは、iPhone上の表示を安定させるため、モデル内部のルートサイズを元データの3倍に加工済みです。ブラウザ側で追加の3倍拡大は行っていません。元のGLBへ戻して再加工する場合は `node scripts/scale-glb-roots.mjs assets/models/*.glb` を実行します（同じファイルへの二重適用は防止されます）。
+
 モデルには環境光・方向光と半透明の影を付け、スタンプ取得時に拡大・浮上する登場演出を加えています。GLB自体にアニメーションがなくても、ゆっくり左右へ回転して立体感を見せます。
 
 ## `event-config.json` の考え方
