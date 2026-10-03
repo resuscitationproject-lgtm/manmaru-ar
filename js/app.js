@@ -34,21 +34,12 @@ async function loadConfig() {
   return value;
 }
 
-function assetId(prefix, point) {
-  return `${prefix}-${point.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-}
-
 function modelScale(point) {
   const scale = Number(point.modelScale) || 0.35;
   return `${scale} ${scale} ${scale}`;
 }
 
-function createTarget(point, assets) {
-  const modelAsset = document.createElement("a-asset-item");
-  modelAsset.id = assetId("model", point);
-  modelAsset.setAttribute("src", point.modelFile);
-  assets.append(modelAsset);
-
+function createTarget(point) {
   const target = document.createElement("a-entity");
   target.setAttribute("mindar-image-target", `targetIndex: ${point.targetIndex}`);
 
@@ -66,8 +57,7 @@ function createTarget(point, assets) {
   popRig.setAttribute("animation__pop", `property: scale; from: 0.001 0.001 0.001; to: ${modelScale(point)}; dur: 900; easing: easeOutElastic; startEvents: model-pop`);
   popRig.setAttribute("animation__rise", `property: position; from: 0 -0.42 0.06; to: ${point.modelPosition || "0 -0.05 0.15"}; dur: 700; easing: easeOutCubic; startEvents: model-pop`);
 
-  const model = document.createElement("a-gltf-model");
-  model.setAttribute("src", `#${modelAsset.id}`);
+  const model = document.createElement("a-entity");
   const magnification = Number(point.modelMagnification) || 1;
   model.setAttribute("scale", `${magnification} ${magnification} ${magnification}`);
   model.setAttribute("rotation", point.modelRotation || "0 0 0");
@@ -75,7 +65,7 @@ function createTarget(point, assets) {
   popRig.append(model);
   target.append(shadow, popRig);
 
-  const entry = { point, target, popRig, shadow };
+  const entry = { point, target, popRig, shadow, model, loaded: false, loadPromise: null };
   targetEntries.set(point.id, entry);
   target.addEventListener("targetFound", () => onTargetFound(entry));
   target.addEventListener("targetLost", () => onTargetLost(entry));
@@ -98,8 +88,6 @@ function makeScene() {
     `missTolerance: ${config.ar.missTolerance ?? 5}`
   ].join("; "));
 
-  const assets = document.createElement("a-assets");
-  assets.setAttribute("timeout", "30000");
   const ambientLight = document.createElement("a-entity");
   ambientLight.setAttribute("light", "type: ambient; color: #ffffff; intensity: 1.25");
   const directionalLight = document.createElement("a-entity");
@@ -109,8 +97,8 @@ function makeScene() {
   camera.setAttribute("position", "0 0 0");
   camera.setAttribute("look-controls", "enabled: false");
 
-  const targets = config.points.map((point) => createTarget(point, assets));
-  scene.append(assets, ambientLight, directionalLight, camera, ...targets);
+  const targets = config.points.map((point) => createTarget(point));
+  scene.append(ambientLight, directionalLight, camera, ...targets);
   ui.arContainer.append(scene);
   return new Promise((resolve) => scene.addEventListener("loaded", resolve, { once: true }));
 }
@@ -132,14 +120,35 @@ function hideUncollectedModel(entry) {
   entry.popRig.setAttribute("visible", "false");
 }
 
+function ensureModelLoaded(entry) {
+  if (entry.loaded) return Promise.resolve();
+  if (entry.loadPromise) return entry.loadPromise;
+  entry.loadPromise = new Promise((resolve, reject) => {
+    const onLoaded = () => {
+      entry.loaded = true;
+      entry.loadPromise = null;
+      resolve();
+    };
+    const onError = () => {
+      entry.loadPromise = null;
+      reject(new Error(`${entry.point.name}の3Dモデルを読み込めませんでした`));
+    };
+    entry.model.addEventListener("model-loaded", onLoaded, { once: true });
+    entry.model.addEventListener("model-error", onError, { once: true });
+    entry.model.setAttribute("gltf-model", entry.point.modelFile);
+  });
+  return entry.loadPromise;
+}
+
 function updateProgress() {
   const pointIds = config.points.map(({ id }) => id);
   const count = countValidStamps(progress, pointIds);
   ui.progress.textContent = `スタンプ ${count} / ${config.completion.requiredStampCount}`;
   if (!activePoint) return;
   const collected = Boolean(progress.stamps[activePoint.id]);
-  ui.stamp.textContent = collected ? "スタンプ獲得済み ✓" : "スタンプを貯める";
-  ui.stamp.disabled = collected;
+  const loading = activeTarget && !activeTarget.loaded;
+  ui.stamp.textContent = loading ? "3Dを読み込み中…" : collected ? "スタンプ獲得済み ✓" : "スタンプを貯める";
+  ui.stamp.disabled = loading || collected;
 }
 
 function setEventTitle(title) {
@@ -153,7 +162,7 @@ function setEventTitle(title) {
   }));
 }
 
-function onTargetFound(entry) {
+async function onTargetFound(entry) {
   activePoint = entry.point;
   activeTarget = entry;
   targetVisible = true;
@@ -161,8 +170,19 @@ function onTargetFound(entry) {
   ui.discovery.textContent = entry.point.foundMessage;
   ui.stampCard.hidden = false;
   updateProgress();
-  if (progress.stamps[entry.point.id]) revealModel(entry, false);
-  else hideUncollectedModel(entry);
+  try {
+    await ensureModelLoaded(entry);
+    if (activeTarget !== entry || !targetVisible) return;
+    updateProgress();
+    if (progress.stamps[entry.point.id]) revealModel(entry, false);
+    else hideUncollectedModel(entry);
+  } catch (error) {
+    console.error(error);
+    if (activeTarget !== entry) return;
+    ui.discovery.textContent = "3Dモデルを読み込めませんでした。通信環境を確認して、もう一度お試しください。";
+    ui.stamp.textContent = "読み込み失敗";
+    ui.stamp.disabled = true;
+  }
 }
 
 function onTargetLost(entry) {
@@ -202,10 +222,18 @@ function stopAr() {
   ui.welcome.hidden = false;
 }
 
-function collectStamp() {
+async function collectStamp() {
   if (!targetVisible || !activePoint || !activeTarget || progress.stamps[activePoint.id]) return;
   const collectedPoint = activePoint;
   const collectedTarget = activeTarget;
+  try {
+    await ensureModelLoaded(collectedTarget);
+  } catch (error) {
+    console.error(error);
+    ui.discovery.textContent = "3Dモデルを読み込めませんでした。もう一度お試しください。";
+    return;
+  }
+  if (!targetVisible || activeTarget !== collectedTarget) return;
   progress = store.save(addStamp(progress, collectedPoint.id));
   revealModel(collectedTarget, true);
   updateProgress();
