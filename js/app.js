@@ -68,6 +68,8 @@ function createTarget(point, assets) {
 
   const model = document.createElement("a-gltf-model");
   model.setAttribute("src", `#${modelAsset.id}`);
+  const magnification = Number(point.modelMagnification) || 1;
+  model.setAttribute("scale", `${magnification} ${magnification} ${magnification}`);
   model.setAttribute("rotation", point.modelRotation || "0 0 0");
   model.setAttribute("animation__turn", "property: rotation; from: 0 -12 0; to: 0 12 0; dur: 1800; easing: easeInOutSine; loop: true; dir: alternate");
   popRig.append(model);
