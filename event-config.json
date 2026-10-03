@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "event": {
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
     "title": "まんまる文化祭 ARスタンプラリー",
-    "description": "会場のマークにカメラを向けて、まるぽんを見つけよう！",
+    "description": "子どもたちの絵を見つけて、3Dになったキャラクターに会おう！",
     "heroImage": "./assets/main-visual-2026.jpg",
     "heroAlt": "BeWith まんまる文化祭 2026年11月21日・22日 10時から16時"
   },
@@ -17,18 +17,68 @@
   },
   "points": [
     {
-      "id": "manmaru-01",
+      "id": "pencil",
       "targetIndex": 0,
-      "name": "まるぽん",
-      "characterImage": "./assets/character-marpon.png",
-      "characterAlt": "まんまる文化祭のキャラクター・まるぽん",
-      "speech": "まるぽんパワー！\nきらきらビーム！",
-      "foundMessage": "まるぽんを発見！",
-      "stampMessage": "まるぽんのスタンプを獲得しました！"
+      "name": "えんぴつ",
+      "sourceImage": "./assets/targets/01_pencil.jpg",
+      "modelFile": "./assets/models/01_pencil.glb",
+      "modelScale": 0.34,
+      "modelPosition": "0 -0.08 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "えんぴつの絵を発見！",
+      "stampMessage": "絵から3Dの『えんぴつ』が飛び出した！"
+    },
+    {
+      "id": "plus-box",
+      "targetIndex": 1,
+      "name": "プラスボックス",
+      "sourceImage": "./assets/targets/02_plus_box.jpg",
+      "modelFile": "./assets/models/02_plus_box.glb",
+      "modelScale": 0.38,
+      "modelPosition": "0 -0.04 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "プラスボックスの絵を発見！",
+      "stampMessage": "絵から3Dの『プラスボックス』が飛び出した！"
+    },
+    {
+      "id": "miraikun",
+      "targetIndex": 2,
+      "name": "みらい〜くん",
+      "sourceImage": "./assets/targets/03_miraikun.jpg",
+      "modelFile": "./assets/models/03_miraikun.glb",
+      "modelScale": 0.36,
+      "modelPosition": "0 -0.04 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "みらい〜くんの絵を発見！",
+      "stampMessage": "絵から3Dの『みらい〜くん』が飛び出した！"
+    },
+    {
+      "id": "water-fire",
+      "targetIndex": 3,
+      "name": "すいくん",
+      "sourceImage": "./assets/targets/04_water_fire.jpg",
+      "modelFile": "./assets/models/04_water_fire.glb",
+      "modelScale": 0.38,
+      "modelPosition": "0 -0.05 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "すいくんの絵を発見！",
+      "stampMessage": "絵から3Dの『すいくん』が飛び出した！"
+    },
+    {
+      "id": "hero-dog",
+      "targetIndex": 4,
+      "name": "勇者ぷらいぬ",
+      "sourceImage": "./assets/targets/05_hero_dog.jpg",
+      "modelFile": "./assets/models/05_hero_dog.glb",
+      "modelScale": 0.32,
+      "modelPosition": "0 -0.08 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "勇者ぷらいぬの絵を発見！",
+      "stampMessage": "絵から3Dの『勇者ぷらいぬ』が飛び出した！"
     }
   ],
   "completion": {
-    "requiredStampCount": 1,
-    "message": "Phase 1クリア！ 本番版では、ここからコンプリート画面やルーレット抽選へ進みます。"
+    "requiredStampCount": 5,
+    "message": "5つの絵が3Dキャラクターになったよ！ 全スタンプコンプリート！"
   }
 }

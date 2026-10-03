@@ -14,13 +14,15 @@ const ui = {
 };
 
 let config;
-let point;
 let scene;
-let target;
 let arSystem;
 let store;
 let progress;
+let activePoint = null;
+let activeTarget = null;
 let targetVisible = false;
+let successTimer = null;
+const targetEntries = new Map();
 
 async function loadConfig() {
   const response = await fetch("./event-config.json", { cache: "no-store" });
@@ -32,30 +34,50 @@ async function loadConfig() {
   return value;
 }
 
-function drawSpeech(canvas, speech) {
-  const context = canvas.getContext("2d");
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "rgba(255,255,255,.96)";
-  context.strokeStyle = "#30251f";
-  context.lineWidth = 16;
-  context.beginPath();
-  context.roundRect(24, 24, 976, 292, 54);
-  context.fill();
-  context.stroke();
-  context.beginPath();
-  context.moveTo(230, 312);
-  context.lineTo(320, 312);
-  context.lineTo(260, 370);
-  context.closePath();
-  context.fill();
-  context.stroke();
-  context.fillStyle = "#30251f";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.font = "bold 62px sans-serif";
-  const lines = speech.split("\n").slice(0, 3);
-  const firstY = 170 - ((lines.length - 1) * 42);
-  lines.forEach((line, index) => context.fillText(line, 512, firstY + (index * 84), 900));
+function assetId(prefix, point) {
+  return `${prefix}-${point.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
+function modelScale(point) {
+  const scale = Number(point.modelScale) || 0.35;
+  return `${scale} ${scale} ${scale}`;
+}
+
+function createTarget(point, assets) {
+  const modelAsset = document.createElement("a-asset-item");
+  modelAsset.id = assetId("model", point);
+  modelAsset.setAttribute("src", point.modelFile);
+  assets.append(modelAsset);
+
+  const target = document.createElement("a-entity");
+  target.setAttribute("mindar-image-target", `targetIndex: ${point.targetIndex}`);
+
+  const shadow = document.createElement("a-circle");
+  shadow.setAttribute("position", "0 -0.38 0.03");
+  shadow.setAttribute("rotation", "-90 0 0");
+  shadow.setAttribute("radius", "0.34");
+  shadow.setAttribute("material", "color: #111; opacity: 0.22; transparent: true; shader: flat");
+  shadow.setAttribute("visible", "false");
+
+  const popRig = document.createElement("a-entity");
+  popRig.setAttribute("position", point.modelPosition || "0 -0.05 0.15");
+  popRig.setAttribute("scale", "0.001 0.001 0.001");
+  popRig.setAttribute("visible", "false");
+  popRig.setAttribute("animation__pop", `property: scale; from: 0.001 0.001 0.001; to: ${modelScale(point)}; dur: 900; easing: easeOutElastic; startEvents: model-pop`);
+  popRig.setAttribute("animation__rise", `property: position; from: 0 -0.42 0.06; to: ${point.modelPosition || "0 -0.05 0.15"}; dur: 700; easing: easeOutCubic; startEvents: model-pop`);
+
+  const model = document.createElement("a-gltf-model");
+  model.setAttribute("src", `#${modelAsset.id}`);
+  model.setAttribute("rotation", point.modelRotation || "0 0 0");
+  model.setAttribute("animation__turn", "property: rotation; from: 0 -12 0; to: 0 12 0; dur: 1800; easing: easeInOutSine; loop: true; dir: alternate");
+  popRig.append(model);
+  target.append(shadow, popRig);
+
+  const entry = { point, target, popRig, shadow };
+  targetEntries.set(point.id, entry);
+  target.addEventListener("targetFound", () => onTargetFound(entry));
+  target.addEventListener("targetLost", () => onTargetLost(entry));
+  return target;
 }
 
 function makeScene() {
@@ -67,8 +89,7 @@ function makeScene() {
   scene.setAttribute("device-orientation-permission-ui", "enabled: false");
   scene.setAttribute("mindar-image", [
     `imageTargetSrc: ${config.ar.targetFile}`,
-    "autoStart: false",
-    "uiLoading: no", "uiScanning: no", "uiError: no",
+    "autoStart: false", "uiLoading: no", "uiScanning: no", "uiError: no",
     `filterMinCF: ${config.ar.filterMinCF ?? 0.001}`,
     `filterBeta: ${config.ar.filterBeta ?? 1000}`,
     `warmupTolerance: ${config.ar.warmupTolerance ?? 5}`,
@@ -76,52 +97,45 @@ function makeScene() {
   ].join("; "));
 
   const assets = document.createElement("a-assets");
-  assets.setAttribute("timeout", "15000");
-  const character = document.createElement("img");
-  character.id = "ar-character";
-  character.src = point.characterImage;
-  character.alt = point.characterAlt || "ARキャラクター";
-  character.crossOrigin = "anonymous";
-  const speechCanvas = document.createElement("canvas");
-  speechCanvas.id = "speech-canvas";
-  speechCanvas.width = 1024;
-  speechCanvas.height = 384;
-  drawSpeech(speechCanvas, point.speech);
-  assets.append(character, speechCanvas);
-
+  assets.setAttribute("timeout", "30000");
+  const ambientLight = document.createElement("a-entity");
+  ambientLight.setAttribute("light", "type: ambient; color: #ffffff; intensity: 1.25");
+  const directionalLight = document.createElement("a-entity");
+  directionalLight.setAttribute("light", "type: directional; color: #ffffff; intensity: 1.8");
+  directionalLight.setAttribute("position", "-1 2 3");
   const camera = document.createElement("a-camera");
   camera.setAttribute("position", "0 0 0");
   camera.setAttribute("look-controls", "enabled: false");
 
-  target = document.createElement("a-entity");
-  target.setAttribute("mindar-image-target", `targetIndex: ${point.targetIndex}`);
-  const characterPlane = document.createElement("a-plane");
-  characterPlane.setAttribute("src", "#ar-character");
-  characterPlane.setAttribute("position", "0 0.05 0.02");
-  characterPlane.setAttribute("width", "1.12");
-  characterPlane.setAttribute("height", "1.12");
-  characterPlane.setAttribute("material", "shader: flat; transparent: true; alphaTest: 0.02");
-  characterPlane.setAttribute("animation", "property: position; from: 0 0.02 0.02; to: 0 0.1 0.02; dur: 800; easing: easeInOutSine; loop: true; dir: alternate");
-  const speechPlane = document.createElement("a-plane");
-  speechPlane.setAttribute("src", "#speech-canvas");
-  speechPlane.setAttribute("position", "0 0.82 0.04");
-  speechPlane.setAttribute("width", "1.42");
-  speechPlane.setAttribute("height", ".533");
-  speechPlane.setAttribute("material", "shader: flat; transparent: true; alphaTest: 0.02");
-  target.append(characterPlane, speechPlane);
-  scene.append(assets, camera, target);
+  const targets = config.points.map((point) => createTarget(point, assets));
+  scene.append(assets, ambientLight, directionalLight, camera, ...targets);
   ui.arContainer.append(scene);
-
-  target.addEventListener("targetFound", onTargetFound);
-  target.addEventListener("targetLost", onTargetLost);
   return new Promise((resolve) => scene.addEventListener("loaded", resolve, { once: true }));
+}
+
+function revealModel(entry, animate = true) {
+  entry.shadow.setAttribute("visible", "true");
+  entry.popRig.setAttribute("visible", "true");
+  if (animate) {
+    entry.popRig.setAttribute("scale", "0.001 0.001 0.001");
+    requestAnimationFrame(() => entry.popRig.emit("model-pop"));
+  } else {
+    entry.popRig.setAttribute("scale", modelScale(entry.point));
+  }
+}
+
+function hideUncollectedModel(entry) {
+  if (progress.stamps[entry.point.id]) return;
+  entry.shadow.setAttribute("visible", "false");
+  entry.popRig.setAttribute("visible", "false");
 }
 
 function updateProgress() {
   const pointIds = config.points.map(({ id }) => id);
   const count = countValidStamps(progress, pointIds);
   ui.progress.textContent = `スタンプ ${count} / ${config.completion.requiredStampCount}`;
-  const collected = Boolean(progress.stamps[point.id]);
+  if (!activePoint) return;
+  const collected = Boolean(progress.stamps[activePoint.id]);
   ui.stamp.textContent = collected ? "スタンプ獲得済み ✓" : "スタンプを貯める";
   ui.stamp.disabled = collected;
 }
@@ -137,17 +151,23 @@ function setEventTitle(title) {
   }));
 }
 
-function onTargetFound() {
+function onTargetFound(entry) {
+  activePoint = entry.point;
+  activeTarget = entry;
   targetVisible = true;
   ui.guide.hidden = true;
-  ui.discovery.textContent = point.foundMessage;
+  ui.discovery.textContent = entry.point.foundMessage;
   ui.stampCard.hidden = false;
+  updateProgress();
+  if (progress.stamps[entry.point.id]) revealModel(entry, false);
+  else hideUncollectedModel(entry);
 }
 
-function onTargetLost() {
+function onTargetLost(entry) {
+  if (activeTarget !== entry) return;
   targetVisible = false;
   ui.stampCard.hidden = true;
-  ui.guideMessage.textContent = "見失いました。もう一度マークを映してね";
+  ui.guideMessage.textContent = "見失いました。もう一度、子どもたちの絵を映してね";
   ui.guide.hidden = false;
 }
 
@@ -156,7 +176,7 @@ async function startAr() {
   ui.welcome.hidden = true;
   ui.arView.hidden = false;
   ui.guide.hidden = false;
-  ui.guideMessage.textContent = "会場のマークを枠の中に入れてね";
+  ui.guideMessage.textContent = "子どもたちの絵を枠の中に入れてね";
   try {
     arSystem ||= scene.systems["mindar-image-system"];
     await arSystem.start();
@@ -170,7 +190,10 @@ async function startAr() {
 
 function stopAr() {
   if (arSystem) arSystem.stop();
+  clearTimeout(successTimer);
   targetVisible = false;
+  activePoint = null;
+  activeTarget = null;
   ui.arView.hidden = true;
   ui.success.hidden = true;
   ui.stampCard.hidden = true;
@@ -178,14 +201,22 @@ function stopAr() {
 }
 
 function collectStamp() {
-  if (!targetVisible || progress.stamps[point.id]) return;
-  progress = store.save(addStamp(progress, point.id));
+  if (!targetVisible || !activePoint || !activeTarget || progress.stamps[activePoint.id]) return;
+  const collectedPoint = activePoint;
+  const collectedTarget = activeTarget;
+  progress = store.save(addStamp(progress, collectedPoint.id));
+  revealModel(collectedTarget, true);
   updateProgress();
+  ui.discovery.textContent = `${collectedPoint.name}が3Dになって飛び出した！`;
+
   const count = countValidStamps(progress, config.points.map(({ id }) => id));
   const completed = count >= config.completion.requiredStampCount;
-  ui.successTitle.textContent = completed ? "コンプリート！" : "やったね！";
-  ui.successMessage.textContent = completed ? config.completion.message : point.stampMessage;
-  ui.success.hidden = false;
+  clearTimeout(successTimer);
+  successTimer = setTimeout(() => {
+    ui.successTitle.textContent = completed ? "コンプリート！" : "3Dキャラ誕生！";
+    ui.successMessage.textContent = completed ? config.completion.message : collectedPoint.stampMessage;
+    ui.success.hidden = false;
+  }, 1700);
 }
 
 function resetStamps() {
@@ -197,6 +228,7 @@ function resetStamps() {
   if (!window.confirm("この端末に保存されているスタンプをリセットしますか？")) return;
   store.clear();
   progress = store.load();
+  targetEntries.forEach(hideUncollectedModel);
   updateProgress();
   ui.success.hidden = true;
   ui.resetStatus.textContent = "スタンプをリセットしました。";
@@ -205,15 +237,14 @@ function resetStamps() {
 async function init() {
   try {
     config = await loadConfig();
-    point = config.points[0];
     store = createStampStore(config.event.id);
     progress = store.load();
     document.title = config.event.title;
     setEventTitle(config.event.title);
     ui.description.textContent = config.event.description;
     ui.eventNameSmall.textContent = config.event.name;
-    ui.welcomeCharacter.src = config.event.heroImage || point.characterImage;
-    ui.welcomeCharacter.alt = config.event.heroAlt || point.characterAlt;
+    ui.welcomeCharacter.src = config.event.heroImage;
+    ui.welcomeCharacter.alt = config.event.heroAlt || config.event.title;
     await makeScene();
     updateProgress();
     ui.start.disabled = false;
