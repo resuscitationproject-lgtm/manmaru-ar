@@ -73,7 +73,25 @@ function createTarget(point, assets) {
   popRig.append(model);
   target.append(shadow, popRig);
 
-  const entry = { point, target, popRig, shadow };
+  const entry = {
+    point, target, popRig, shadow, model,
+    modelReady: false,
+    modelError: false,
+    targetVisible: false
+  };
+  model.addEventListener("model-loaded", () => {
+    entry.modelReady = true;
+    entry.modelError = false;
+    if (entry.targetVisible && progress?.stamps[point.id]) revealModel(entry, false);
+    if (activeTarget === entry) updateProgress();
+  });
+  model.addEventListener("model-error", () => {
+    entry.modelError = true;
+    if (activeTarget === entry) {
+      ui.discovery.textContent = "3Dモデルを読み込めませんでした。ページを再読み込みしてください。";
+      updateProgress();
+    }
+  });
   targetEntries.set(point.id, entry);
   target.addEventListener("targetFound", () => onTargetFound(entry));
   target.addEventListener("targetLost", () => onTargetLost(entry));
@@ -116,11 +134,15 @@ function makeScene() {
 function revealModel(entry, animate = true) {
   entry.shadow.setAttribute("visible", "true");
   entry.popRig.setAttribute("visible", "true");
+  if (entry.shadow.object3D) entry.shadow.object3D.visible = true;
+  if (entry.popRig.object3D) entry.popRig.object3D.visible = true;
   if (animate) {
     entry.popRig.setAttribute("scale", "0.001 0.001 0.001");
     requestAnimationFrame(() => entry.popRig.emit("model-pop"));
   } else {
     entry.popRig.setAttribute("scale", modelScale(entry.point));
+    const scale = Number(entry.point.modelScale) || 0.35;
+    if (entry.popRig.object3D) entry.popRig.object3D.scale.set(scale, scale, scale);
   }
 }
 
@@ -136,8 +158,10 @@ function updateProgress() {
   ui.progress.textContent = `スタンプ ${count} / ${config.completion.requiredStampCount}`;
   if (!activePoint) return;
   const collected = Boolean(progress.stamps[activePoint.id]);
-  ui.stamp.textContent = collected ? "スタンプ獲得済み ✓" : "スタンプを貯める";
-  ui.stamp.disabled = collected;
+  const loading = activeTarget && !activeTarget.modelReady && !activeTarget.modelError;
+  const failed = Boolean(activeTarget?.modelError);
+  ui.stamp.textContent = failed ? "3D読み込み失敗" : loading ? "3Dを準備中…" : collected ? "スタンプ獲得済み ✓" : "スタンプを貯める";
+  ui.stamp.disabled = failed || loading || collected;
 }
 
 function setEventTitle(title) {
@@ -152,6 +176,7 @@ function setEventTitle(title) {
 }
 
 function onTargetFound(entry) {
+  entry.targetVisible = true;
   activePoint = entry.point;
   activeTarget = entry;
   targetVisible = true;
@@ -159,11 +184,12 @@ function onTargetFound(entry) {
   ui.discovery.textContent = entry.point.foundMessage;
   ui.stampCard.hidden = false;
   updateProgress();
-  if (progress.stamps[entry.point.id]) revealModel(entry, false);
+  if (progress.stamps[entry.point.id] && entry.modelReady) revealModel(entry, false);
   else hideUncollectedModel(entry);
 }
 
 function onTargetLost(entry) {
+  entry.targetVisible = false;
   if (activeTarget !== entry) return;
   targetVisible = false;
   ui.stampCard.hidden = true;
@@ -201,7 +227,7 @@ function stopAr() {
 }
 
 function collectStamp() {
-  if (!targetVisible || !activePoint || !activeTarget || progress.stamps[activePoint.id]) return;
+  if (!targetVisible || !activePoint || !activeTarget || !activeTarget.modelReady || progress.stamps[activePoint.id]) return;
   const collectedPoint = activePoint;
   const collectedTarget = activeTarget;
   progress = store.save(addStamp(progress, collectedPoint.id));

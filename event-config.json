@@ -13,7 +13,7 @@
     "filterMinCF": 0.001,
     "filterBeta": 1000,
     "warmupTolerance": 5,
-    "missTolerance": 5
+    "missTolerance": 15
   },
   "points": [
     {

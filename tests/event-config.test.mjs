@@ -13,4 +13,5 @@ test("5つの原画と3Dモデルが同じ番号順に設定されている", ()
     assert.match(point.modelFile, new RegExp(`${number}_`));
   });
   assert.equal(config.completion.requiredStampCount, 5);
+  assert.ok(config.ar.missTolerance >= 15);
 });
