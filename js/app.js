@@ -163,6 +163,16 @@ function forceModelRendering(entry) {
   });
 }
 
+function maintainActiveModelVisibility() {
+  if (targetVisible && activeTarget?.modelReady) {
+    const { target, popRig, model } = activeTarget;
+    if (target.object3D) target.object3D.visible = true;
+    if (popRig.object3D) popRig.object3D.visible = true;
+    if (model.object3D) model.object3D.visible = true;
+  }
+  requestAnimationFrame(maintainActiveModelVisibility);
+}
+
 function revealModel(entry) {
   applyFinalTransform(entry);
   forceModelRendering(entry);
@@ -255,7 +265,9 @@ function stopCameraForPageSuspend() {
 function reloadForFreshArSession() {
   if (reloadScheduled) return;
   reloadScheduled = true;
-  window.location.reload();
+  const url = new URL(window.location.href);
+  url.searchParams.set("session", Date.now().toString());
+  window.location.replace(url.href);
 }
 
 window.addEventListener("pagehide", stopCameraForPageSuspend);
@@ -340,4 +352,5 @@ ui.retry.addEventListener("click", () => location.reload());
 ui.close.addEventListener("click", stopAr);
 ui.stamp.addEventListener("click", collectStamp);
 ui.continueButton.addEventListener("click", () => { ui.success.hidden = true; });
+requestAnimationFrame(maintainActiveModelVisibility);
 init();

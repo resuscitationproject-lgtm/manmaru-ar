@@ -99,7 +99,9 @@ h2 { margin: 0; font-size: 1.7rem; }
 .privacy-note { margin: 8px 0 0; font-size: .75rem; color: #6e625a; }
 
 .ar-view, #ar-container { position: fixed; inset: 0; width: 100%; height: 100dvh; overflow: hidden; background: #151515; }
-#ar-container a-scene { width: 100%; height: 100%; }
+#ar-container video { z-index: 0 !important; }
+#ar-container a-scene { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; background: transparent !important; }
+#ar-container canvas { z-index: 2 !important; background: transparent !important; }
 .top-bar { position: fixed; z-index: 10; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: calc(12px + env(safe-area-inset-top)) 16px 12px; color: #fff; background: linear-gradient(rgb(0 0 0 / 65%), transparent); pointer-events: none; }
 .event-name-small, .progress-label { margin: 0; text-shadow: 0 2px 4px #000; }
 .event-name-small { font-size: .75rem; }
