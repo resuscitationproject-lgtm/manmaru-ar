@@ -49,7 +49,7 @@ function loadModel(entry) {
   if (entry.modelReady || entry.modelRequested) return;
   entry.modelRequested = true;
   entry.modelError = false;
-  entry.model.setAttribute("src", assetUrl(entry.point.modelFile));
+  entry.model.setAttribute("gltf-model", assetUrl(entry.point.modelFile));
 }
 
 function createTarget(point) {
@@ -70,7 +70,7 @@ function createTarget(point) {
   popRig.setAttribute("animation__pop", `property: scale; from: 0.001 0.001 0.001; to: ${modelScale(point)}; dur: 900; easing: easeOutElastic; startEvents: model-pop`);
   popRig.setAttribute("animation__rise", `property: position; from: 0 -0.42 0.06; to: ${point.modelPosition || "0 -0.05 0.15"}; dur: 700; easing: easeOutCubic; startEvents: model-pop`);
 
-  const model = document.createElement("a-gltf-model");
+  const model = document.createElement("a-entity");
   model.setAttribute("rotation", point.modelRotation || "0 0 0");
   model.setAttribute("animation__turn", "property: rotation; from: 0 -12 0; to: 0 12 0; dur: 1800; easing: easeInOutSine; loop: true; dir: alternate");
   popRig.append(model);
@@ -86,7 +86,7 @@ function createTarget(point) {
   model.addEventListener("model-loaded", () => {
     entry.modelReady = true;
     entry.modelError = false;
-    if (entry.targetVisible && progress?.stamps[point.id]) revealModel(entry, false);
+    if (progress?.stamps[point.id]) revealModel(entry, false);
     if (activeTarget === entry) updateProgress();
   });
   model.addEventListener("model-error", () => {
@@ -134,18 +134,30 @@ function makeScene() {
   return new Promise((resolve) => scene.addEventListener("loaded", resolve, { once: true }));
 }
 
+function applyFinalTransform(entry) {
+  const scale = Number(entry.point.modelScale) || 0.35;
+  const position = entry.point.modelPosition || "0 -0.05 0.15";
+  entry.popRig.setAttribute("scale", modelScale(entry.point));
+  entry.popRig.setAttribute("position", position);
+  if (entry.popRig.object3D) {
+    entry.popRig.object3D.scale.set(scale, scale, scale);
+    const [x, y, z] = position.split(/\s+/).map(Number);
+    entry.popRig.object3D.position.set(x, y, z);
+  }
+}
+
 function revealModel(entry, animate = true) {
   entry.shadow.setAttribute("visible", "true");
   entry.popRig.setAttribute("visible", "true");
   if (entry.shadow.object3D) entry.shadow.object3D.visible = true;
   if (entry.popRig.object3D) entry.popRig.object3D.visible = true;
+  clearTimeout(entry.revealTimer);
   if (animate) {
     entry.popRig.setAttribute("scale", "0.001 0.001 0.001");
     requestAnimationFrame(() => entry.popRig.emit("model-pop"));
+    entry.revealTimer = setTimeout(() => applyFinalTransform(entry), 1100);
   } else {
-    entry.popRig.setAttribute("scale", modelScale(entry.point));
-    const scale = Number(entry.point.modelScale) || 0.35;
-    if (entry.popRig.object3D) entry.popRig.object3D.scale.set(scale, scale, scale);
+    applyFinalTransform(entry);
   }
 }
 
@@ -163,8 +175,8 @@ function updateProgress() {
   const collected = Boolean(progress.stamps[activePoint.id]);
   const loading = activeTarget && !activeTarget.modelReady && !activeTarget.modelError;
   const failed = Boolean(activeTarget?.modelError);
-  ui.stamp.textContent = failed ? "3D読み込み失敗" : loading ? "3Dを準備中…" : collected ? "スタンプ獲得済み ✓" : "スタンプを貯める";
-  ui.stamp.disabled = failed || loading || collected;
+  ui.stamp.textContent = failed ? "3D読み込み失敗" : loading ? "3Dを準備中…" : collected ? "3Dをもう一度表示" : "スタンプを貯める";
+  ui.stamp.disabled = failed || loading;
 }
 
 function setEventTitle(title) {
@@ -231,7 +243,11 @@ function stopAr() {
 }
 
 function collectStamp() {
-  if (!targetVisible || !activePoint || !activeTarget || !activeTarget.modelReady || progress.stamps[activePoint.id]) return;
+  if (!targetVisible || !activePoint || !activeTarget || !activeTarget.modelReady) return;
+  if (progress.stamps[activePoint.id]) {
+    revealModel(activeTarget, true);
+    return;
+  }
   const collectedPoint = activePoint;
   const collectedTarget = activeTarget;
   progress = store.save(addStamp(progress, collectedPoint.id));
