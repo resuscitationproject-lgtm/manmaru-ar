@@ -14,4 +14,5 @@ test("6つのターゲット画像と3Dモデルが同じ番号順に設定さ�
   });
   assert.equal(config.completion.requiredStampCount, 6);
   assert.ok(config.ar.missTolerance >= 15);
+  assert.match(config.assetVersion, /^\d{8}-\d+$/);
 });

@@ -34,21 +34,25 @@ async function loadConfig() {
   return value;
 }
 
-function assetId(prefix, point) {
-  return `${prefix}-${point.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-}
-
 function modelScale(point) {
   const scale = Number(point.modelScale) || 0.35;
   return `${scale} ${scale} ${scale}`;
 }
 
-function createTarget(point, assets) {
-  const modelAsset = document.createElement("a-asset-item");
-  modelAsset.id = assetId("model", point);
-  modelAsset.setAttribute("src", point.modelFile);
-  assets.append(modelAsset);
+function assetUrl(path) {
+  const url = new URL(path, window.location.href);
+  url.searchParams.set("v", config.assetVersion || config.schemaVersion || "1");
+  return url.href;
+}
 
+function loadModel(entry) {
+  if (entry.modelReady || entry.modelRequested) return;
+  entry.modelRequested = true;
+  entry.modelError = false;
+  entry.model.setAttribute("src", assetUrl(entry.point.modelFile));
+}
+
+function createTarget(point) {
   const target = document.createElement("a-entity");
   target.setAttribute("mindar-image-target", `targetIndex: ${point.targetIndex}`);
 
@@ -67,7 +71,6 @@ function createTarget(point, assets) {
   popRig.setAttribute("animation__rise", `property: position; from: 0 -0.42 0.06; to: ${point.modelPosition || "0 -0.05 0.15"}; dur: 700; easing: easeOutCubic; startEvents: model-pop`);
 
   const model = document.createElement("a-gltf-model");
-  model.setAttribute("src", `#${modelAsset.id}`);
   model.setAttribute("rotation", point.modelRotation || "0 0 0");
   model.setAttribute("animation__turn", "property: rotation; from: 0 -12 0; to: 0 12 0; dur: 1800; easing: easeInOutSine; loop: true; dir: alternate");
   popRig.append(model);
@@ -75,6 +78,7 @@ function createTarget(point, assets) {
 
   const entry = {
     point, target, popRig, shadow, model,
+    modelRequested: false,
     modelReady: false,
     modelError: false,
     targetVisible: false
@@ -86,6 +90,7 @@ function createTarget(point, assets) {
     if (activeTarget === entry) updateProgress();
   });
   model.addEventListener("model-error", () => {
+    entry.modelRequested = false;
     entry.modelError = true;
     if (activeTarget === entry) {
       ui.discovery.textContent = "3Dモデルを読み込めませんでした。ページを再読み込みしてください。";
@@ -106,7 +111,7 @@ function makeScene() {
   scene.setAttribute("vr-mode-ui", "enabled: false");
   scene.setAttribute("device-orientation-permission-ui", "enabled: false");
   scene.setAttribute("mindar-image", [
-    `imageTargetSrc: ${config.ar.targetFile}`,
+    `imageTargetSrc: ${assetUrl(config.ar.targetFile)}`,
     "autoStart: false", "uiLoading: no", "uiScanning: no", "uiError: no",
     `filterMinCF: ${config.ar.filterMinCF ?? 0.001}`,
     `filterBeta: ${config.ar.filterBeta ?? 1000}`,
@@ -114,8 +119,6 @@ function makeScene() {
     `missTolerance: ${config.ar.missTolerance ?? 5}`
   ].join("; "));
 
-  const assets = document.createElement("a-assets");
-  assets.setAttribute("timeout", "30000");
   const ambientLight = document.createElement("a-entity");
   ambientLight.setAttribute("light", "type: ambient; color: #ffffff; intensity: 1.25");
   const directionalLight = document.createElement("a-entity");
@@ -125,8 +128,8 @@ function makeScene() {
   camera.setAttribute("position", "0 0 0");
   camera.setAttribute("look-controls", "enabled: false");
 
-  const targets = config.points.map((point) => createTarget(point, assets));
-  scene.append(assets, ambientLight, directionalLight, camera, ...targets);
+  const targets = config.points.map((point) => createTarget(point));
+  scene.append(ambientLight, directionalLight, camera, ...targets);
   ui.arContainer.append(scene);
   return new Promise((resolve) => scene.addEventListener("loaded", resolve, { once: true }));
 }
@@ -180,6 +183,7 @@ function onTargetFound(entry) {
   activePoint = entry.point;
   activeTarget = entry;
   targetVisible = true;
+  loadModel(entry);
   ui.guide.hidden = true;
   ui.discovery.textContent = entry.point.foundMessage;
   ui.stampCard.hidden = false;

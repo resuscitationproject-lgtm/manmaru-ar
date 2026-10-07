@@ -78,6 +78,8 @@ Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始ま
 
 モデルには環境光・方向光と半透明の影を付け、スタンプ取得時に拡大・浮上する登場演出を加えています。GLB自体にアニメーションがなくても、ゆっくり左右へ回転して立体感を見せます。
 
+iPhoneでのメモリ使用量を抑えるため、6つの3Dモデルは一括で先読みせず、認識したポイントのモデルだけを読み込みます。モデルや `targets.mind` を更新した際は、`event-config.json` の `assetVersion` も変更して端末の古いキャッシュを回避します。
+
 ## `event-config.json` の考え方
 
 - `event.id`: localStorageの保存領域を分ける一意なID。年度やイベントが変わる場合は必ず変更します。
