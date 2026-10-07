@@ -22,7 +22,6 @@ let activePoint = null;
 let activeTarget = null;
 let targetVisible = false;
 let successTimer = null;
-const targetEntries = new Map();
 
 async function loadConfig() {
   const response = await fetch("./event-config.json", { cache: "no-store" });
@@ -61,18 +60,15 @@ function createTarget(point) {
   shadow.setAttribute("rotation", "-90 0 0");
   shadow.setAttribute("radius", "0.34");
   shadow.setAttribute("material", "color: #111; opacity: 0.22; transparent: true; shader: flat");
-  shadow.setAttribute("visible", "false");
+  shadow.setAttribute("visible", "true");
 
   const popRig = document.createElement("a-entity");
   popRig.setAttribute("position", point.modelPosition || "0 -0.05 0.15");
-  popRig.setAttribute("scale", "0.001 0.001 0.001");
-  popRig.setAttribute("visible", "false");
-  popRig.setAttribute("animation__pop", `property: scale; from: 0.001 0.001 0.001; to: ${modelScale(point)}; dur: 900; easing: easeOutElastic; startEvents: model-pop`);
-  popRig.setAttribute("animation__rise", `property: position; from: 0 -0.42 0.06; to: ${point.modelPosition || "0 -0.05 0.15"}; dur: 700; easing: easeOutCubic; startEvents: model-pop`);
+  popRig.setAttribute("scale", modelScale(point));
+  popRig.setAttribute("visible", "true");
 
   const model = document.createElement("a-entity");
   model.setAttribute("rotation", point.modelRotation || "0 0 0");
-  model.setAttribute("animation__turn", "property: rotation; from: 0 -12 0; to: 0 12 0; dur: 1800; easing: easeInOutSine; loop: true; dir: alternate");
   popRig.append(model);
   target.append(shadow, popRig);
 
@@ -86,8 +82,11 @@ function createTarget(point) {
   model.addEventListener("model-loaded", () => {
     entry.modelReady = true;
     entry.modelError = false;
-    if (progress?.stamps[point.id]) revealModel(entry, false);
-    if (activeTarget === entry) updateProgress();
+    revealModel(entry);
+    if (activeTarget === entry) {
+      ui.discovery.textContent = `${point.name}の3Dを表示中`;
+      updateProgress();
+    }
   });
   model.addEventListener("model-error", () => {
     entry.modelRequested = false;
@@ -97,7 +96,6 @@ function createTarget(point) {
       updateProgress();
     }
   });
-  targetEntries.set(point.id, entry);
   target.addEventListener("targetFound", () => onTargetFound(entry));
   target.addEventListener("targetLost", () => onTargetLost(entry));
   return target;
@@ -146,25 +144,12 @@ function applyFinalTransform(entry) {
   }
 }
 
-function revealModel(entry, animate = true) {
+function revealModel(entry) {
   entry.shadow.setAttribute("visible", "true");
   entry.popRig.setAttribute("visible", "true");
   if (entry.shadow.object3D) entry.shadow.object3D.visible = true;
   if (entry.popRig.object3D) entry.popRig.object3D.visible = true;
-  clearTimeout(entry.revealTimer);
-  if (animate) {
-    entry.popRig.setAttribute("scale", "0.001 0.001 0.001");
-    requestAnimationFrame(() => entry.popRig.emit("model-pop"));
-    entry.revealTimer = setTimeout(() => applyFinalTransform(entry), 1100);
-  } else {
-    applyFinalTransform(entry);
-  }
-}
-
-function hideUncollectedModel(entry) {
-  if (progress.stamps[entry.point.id]) return;
-  entry.shadow.setAttribute("visible", "false");
-  entry.popRig.setAttribute("visible", "false");
+  applyFinalTransform(entry);
 }
 
 function updateProgress() {
@@ -200,8 +185,7 @@ function onTargetFound(entry) {
   ui.discovery.textContent = entry.point.foundMessage;
   ui.stampCard.hidden = false;
   updateProgress();
-  if (progress.stamps[entry.point.id] && entry.modelReady) revealModel(entry, false);
-  else hideUncollectedModel(entry);
+  if (entry.modelReady) revealModel(entry);
 }
 
 function onTargetLost(entry) {
@@ -245,13 +229,13 @@ function stopAr() {
 function collectStamp() {
   if (!targetVisible || !activePoint || !activeTarget || !activeTarget.modelReady) return;
   if (progress.stamps[activePoint.id]) {
-    revealModel(activeTarget, true);
+    revealModel(activeTarget);
     return;
   }
   const collectedPoint = activePoint;
   const collectedTarget = activeTarget;
   progress = store.save(addStamp(progress, collectedPoint.id));
-  revealModel(collectedTarget, true);
+  revealModel(collectedTarget);
   updateProgress();
   ui.discovery.textContent = `${collectedPoint.name}が3Dになって飛び出した！`;
 
@@ -274,7 +258,6 @@ function resetStamps() {
   if (!window.confirm("この端末に保存されているスタンプをリセットしますか？")) return;
   store.clear();
   progress = store.load();
-  targetEntries.forEach(hideUncollectedModel);
   updateProgress();
   ui.success.hidden = true;
   ui.resetStatus.textContent = "スタンプをリセットしました。";
