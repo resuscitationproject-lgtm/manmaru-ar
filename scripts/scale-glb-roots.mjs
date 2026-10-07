@@ -24,14 +24,14 @@ for (const file of files) {
   if (document.asset.extras.manmaruScaleFactor) throw new Error(`${file} は別倍率で加工済みです`);
 
   const scene = document.scenes[document.scene || 0];
-  for (const nodeIndex of scene.nodes || []) {
-    const node = document.nodes[nodeIndex];
-    if (node.matrix) {
-      for (const index of [0, 1, 2, 4, 5, 6, 8, 9, 10]) node.matrix[index] *= factor;
-    } else {
-      node.scale = (node.scale || [1, 1, 1]).map((value) => value * factor);
-    }
-  }
+  const originalRoots = [...(scene.nodes || [])];
+  const wrapperIndex = document.nodes.length;
+  document.nodes.push({
+    name: `AR_SCALE_${factor}X`,
+    scale: [factor, factor, factor],
+    children: originalRoots,
+  });
+  scene.nodes = [wrapperIndex];
   document.asset.extras.manmaruScaleFactor = factor;
 
   const json = Buffer.from(JSON.stringify(document), "utf8");
@@ -48,5 +48,5 @@ for (const file of files) {
   jsonChunk.copy(output, 20);
   remaining.copy(output, 20 + paddedLength);
   await writeFile(file, output);
-  console.log(`${path.basename(file)}: ルートを${factor}倍にしました`);
+  console.log(`${path.basename(file)}: 集合全体を${factor}倍にしました`);
 }

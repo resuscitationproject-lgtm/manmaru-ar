@@ -74,7 +74,7 @@ Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始ま
 3. `event-config.json` の `sourceImage`、`modelFile`、`name`、各メッセージを変更します。
 4. 実機を見ながら `modelScale`、`modelPosition`、`modelRotation` を調整します。
 
-子どもたちの5つのGLBは、iPhone上の表示を安定させるため、モデル内部のルートサイズを元データの3倍に加工済みです。ブラウザ側で追加の3倍拡大は行っていません。元のGLBへ戻して再加工する場合は `node scripts/scale-glb-roots.mjs 3 assets/models/0[1-5]_*.glb` を実行します（同じファイルへの二重適用は防止されます）。
+子どもたちの5つのGLBは、iPhone上の表示を安定させるため、モデル内部に全体倍率用の親要素を追加し、元データの3倍に加工済みです。ブラウザ側で追加の3倍拡大は行っていません。二瀬窯業の集合モデルも同じ方式で6倍にしており、複数部品の相対位置を維持します。元のGLBへ戻して再加工する場合は `node scripts/scale-glb-roots.mjs 3 assets/models/0[1-5]_*.glb` のように実行します（同じファイルへの二重適用は防止されます）。
 
 モデルには環境光・方向光と半透明の影を付け、スタンプ取得時に拡大・浮上する登場演出を加えています。GLB自体にアニメーションがなくても、ゆっくり左右へ回転して立体感を見せます。
 
