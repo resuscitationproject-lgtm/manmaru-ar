@@ -22,6 +22,8 @@ let activePoint = null;
 let activeTarget = null;
 let targetVisible = false;
 let successTimer = null;
+let hiddenAt = 0;
+let reloadScheduled = false;
 
 async function loadConfig() {
   const response = await fetch("./event-config.json", { cache: "no-store" });
@@ -241,6 +243,35 @@ function stopAr() {
   ui.stampCard.hidden = true;
   ui.welcome.hidden = false;
 }
+
+function stopCameraForPageSuspend() {
+  try {
+    arSystem?.stop();
+  } catch (error) {
+    console.warn("ARの一時停止に失敗しました", error);
+  }
+}
+
+function reloadForFreshArSession() {
+  if (reloadScheduled) return;
+  reloadScheduled = true;
+  window.location.reload();
+}
+
+window.addEventListener("pagehide", stopCameraForPageSuspend);
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) reloadForFreshArSession();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    hiddenAt = Date.now();
+    stopCameraForPageSuspend();
+    return;
+  }
+  if (hiddenAt && Date.now() - hiddenAt >= 1000) reloadForFreshArSession();
+  hiddenAt = 0;
+});
 
 function collectStamp() {
   if (!targetVisible || !activePoint || !activeTarget || !activeTarget.modelReady) return;
