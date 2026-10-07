@@ -144,12 +144,26 @@ function applyFinalTransform(entry) {
   }
 }
 
-function revealModel(entry) {
+function forceModelRendering(entry) {
+  entry.target.setAttribute("visible", "true");
   entry.shadow.setAttribute("visible", "true");
   entry.popRig.setAttribute("visible", "true");
+  entry.model.setAttribute("visible", "true");
+  if (entry.target.object3D) entry.target.object3D.visible = true;
   if (entry.shadow.object3D) entry.shadow.object3D.visible = true;
   if (entry.popRig.object3D) entry.popRig.object3D.visible = true;
+  if (entry.model.object3D) entry.model.object3D.visible = true;
+
+  const mesh = entry.model.getObject3D?.("mesh");
+  mesh?.traverse((object) => {
+    object.visible = true;
+    object.frustumCulled = false;
+  });
+}
+
+function revealModel(entry) {
   applyFinalTransform(entry);
+  forceModelRendering(entry);
 }
 
 function updateProgress() {
@@ -190,6 +204,8 @@ function onTargetFound(entry) {
 
 function onTargetLost(entry) {
   entry.targetVisible = false;
+  entry.target.setAttribute("visible", "false");
+  if (entry.target.object3D) entry.target.object3D.visible = false;
   if (activeTarget !== entry) return;
   targetVisible = false;
   ui.stampCard.hidden = true;
