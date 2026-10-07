@@ -1,9 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const factor = 3;
-const files = process.argv.slice(2);
-if (files.length === 0) throw new Error("GLBファイルを指定してください");
+const factor = Number(process.argv[2]);
+const files = process.argv.slice(3);
+if (!Number.isFinite(factor) || factor <= 0) throw new Error("倍率を正の数で指定してください");
+if (files.length === 0) throw new Error("倍率に続けてGLBファイルを指定してください");
 
 for (const file of files) {
   const input = await readFile(file);

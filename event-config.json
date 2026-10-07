@@ -4,7 +4,7 @@
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
     "title": "まんまる文化祭 ARスタンプラリー",
-    "description": "子どもたちの絵を見つけて、3Dになったキャラクターに会おう！",
+    "description": "会場の絵や写真を見つけて、3Dになったキャラクターや商品に会おう！",
     "heroImage": "./assets/main-visual-2026.jpg",
     "heroAlt": "BeWith まんまる文化祭 2026年11月21日・22日 10時から16時"
   },
@@ -75,10 +75,22 @@
       "modelRotation": "0 0 0",
       "foundMessage": "勇者ぷらいぬの絵を発見！",
       "stampMessage": "絵から3Dの『勇者ぷらいぬ』が飛び出した！"
+    },
+    {
+      "id": "futase-memo-stands",
+      "targetIndex": 5,
+      "name": "二瀬窯業 メモスタンド",
+      "sourceImage": "./assets/targets/06_futase_memo_stands.png",
+      "modelFile": "./assets/models/06_futase_memo_stands.glb",
+      "modelScale": 0.36,
+      "modelPosition": "0 -0.08 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "二瀬窯業様のメモスタンドを発見！",
+      "stampMessage": "二瀬窯業様のメモスタンドコレクションが3Dで登場！"
     }
   ],
   "completion": {
-    "requiredStampCount": 5,
-    "message": "5つの絵が3Dキャラクターになったよ！ 全スタンプコンプリート！"
+    "requiredStampCount": 6,
+    "message": "5つのキャラクターと二瀬窯業様のメモスタンドが3Dで登場！ 全スタンプコンプリート！"
   }
 }

@@ -1,12 +1,12 @@
 # まんまる文化祭 ARスタンプラリー — Phase 1
 
-自治会・地域イベントへ横展開できる標準品を想定した、5キャラクター・5ARポイントの静的Webアプリです。子どもたちが描いた原画をカメラで認識し、「スタンプを貯める」を押すと対応する3Dモデルが絵から飛び出すように登場します。スタンプは端末の `localStorage` に保存します。
+自治会・地域イベントへ横展開できる標準品を想定した、6ARポイントの静的Webアプリです。子どもたちが描いた原画や商品の写真をカメラで認識し、「スタンプを貯める」を押すと対応する3Dモデルが飛び出すように登場します。スタンプは端末の `localStorage` に保存します。
 
 ## Phase 1でできること
 
 - iPhone Safari / Android Chromeからカメラを起動
 - MindAR + A-Frameによる画像ターゲット認識
-- 原画5枚と3Dモデル5体を番号で対応付け
+- 子どもたちの原画5枚と二瀬窯業様の商品写真1枚を、対応する3Dモデルへ番号で紐付け
 - スタンプ取得後にGLBモデルを拡大・浮上・回転させてAR表示
 - 認識中だけスタンプボタンを表示
 - イベントID・ポイントID単位でスタンプを端末保存
@@ -29,14 +29,14 @@ manmaru-ar-stamp-rally/
 │   ├── app.js                 # AR画面とイベント進行
 │   └── stamp-store.js         # localStorage保存（複数ポイント対応）
 ├── assets/
-│   ├── targets.mind           # 原画5枚から作るMindAR用認識データ
-│   ├── targets/               # 01〜05の子どもたちの原画
-│   ├── models/                # 原画と同番号の01〜05 GLBモデル
+│   ├── targets.mind           # ターゲット画像6枚から作るMindAR用認識データ
+│   ├── targets/               # 01〜06の原画・商品写真
+│   ├── models/                # ターゲットと同番号の01〜06 GLBモデル
 │   └── main-visual-2026.jpg   # トップ画面のメイン画像
 └── tests/
 ```
 
-`targets.mind` は、会場に掲示する5枚の原画を `01` から `05` の順番でまとめてコンパイルします。順番を変えると原画と3Dモデルの対応がずれるため、ファイル名と投入順を揃えてください。
+`targets.mind` は、会場で認識させる6枚の画像を `01` から `06` の順番でまとめてコンパイルします。順番を変えると画像と3Dモデルの対応がずれるため、ファイル名と投入順を揃えてください。
 
 ## ローカルで確認する
 
@@ -57,15 +57,15 @@ npm test
 
 ## MindAR Image Target Compilerで `targets.mind` を作る
 
-1. 会場に掲示する `01_pencil.jpg`〜`05_hero_dog.jpg` を用意します。余白を含む掲示物全体を、実際に印刷する状態と同じ画像にしてください。
+1. 会場に掲示する `01_pencil.jpg`〜`05_hero_dog.jpg` と `06_futase_memo_stands.png` を用意します。余白を含む掲示物全体を、実際に提示する状態と同じ画像にしてください。
 2. [MindAR Image Targets Compiler](https://hiukim.github.io/mind-ar-js-doc/tools/compile/) をPCブラウザで開きます。
-3. 5枚を `01`、`02`、`03`、`04`、`05` の順にドラッグ＆ドロップし、`Start` を押します。
+3. 6枚を `01`、`02`、`03`、`04`、`05`、`06` の順にドラッグ＆ドロップし、`Start` を押します。
 4. 特徴点の表示を確認します。点が少ない場合や一部に偏る場合は、画像を調整して再度コンパイルします。
 5. `Download` を押して `targets.mind` を保存します。
 6. ダウンロードしたファイルで `assets/targets.mind` を上書きします。
 7. コンパイル元の画像を印刷し、照明・距離・角度を変えて実機テストします。
 
-Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始まり）に対応します。つまり `01_pencil.jpg` は `targetIndex: 0`、`05_hero_dog.jpg` は `targetIndex: 4` です。
+Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始まり）に対応します。つまり `01_pencil.jpg` は `targetIndex: 0`、`06_futase_memo_stands.png` は `targetIndex: 5` です。
 
 ## 原画と3Dモデルを差し替える
 
@@ -74,7 +74,7 @@ Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始ま
 3. `event-config.json` の `sourceImage`、`modelFile`、`name`、各メッセージを変更します。
 4. 実機を見ながら `modelScale`、`modelPosition`、`modelRotation` を調整します。
 
-現在の5つのGLBは、iPhone上の表示を安定させるため、モデル内部のルートサイズを元データの3倍に加工済みです。ブラウザ側で追加の3倍拡大は行っていません。元のGLBへ戻して再加工する場合は `node scripts/scale-glb-roots.mjs assets/models/*.glb` を実行します（同じファイルへの二重適用は防止されます）。
+子どもたちの5つのGLBは、iPhone上の表示を安定させるため、モデル内部のルートサイズを元データの3倍に加工済みです。ブラウザ側で追加の3倍拡大は行っていません。元のGLBへ戻して再加工する場合は `node scripts/scale-glb-roots.mjs 3 assets/models/0[1-5]_*.glb` を実行します（同じファイルへの二重適用は防止されます）。
 
 モデルには環境光・方向光と半透明の影を付け、スタンプ取得時に拡大・浮上する登場演出を加えています。GLB自体にアニメーションがなくても、ゆっくり左右へ回転して立体感を見せます。
 
@@ -85,7 +85,7 @@ Compilerへ投入した順番が `event-config.json` の `targetIndex`（0始ま
 - `ar.targetFile`: Compilerで作った `.mind` ファイル。
 - `points[]`: キャラクターごとの原画、3Dモデル、表示サイズ、メッセージをまとめた配列。
 - `targetIndex`: `.mind` 内の画像順。先頭は `0`。
-- `completion.requiredStampCount`: コンプリートに必要な数。現在は `5`。
+- `completion.requiredStampCount`: コンプリートに必要な数。現在は `6`。
 
 アプリは `points` をループしてARエンティティを生成します。将来ルーレットを追加するときは、保存済みポイント数が `requiredStampCount` に達した後のコンプリート処理から遷移できます。
 
@@ -121,11 +121,11 @@ GitHub Pagesで確定したイベントURLをQRコード化します。QRコー�
 
 1. iPhone SafariとAndroid ChromeでQRコードを読みます。
 2. 「カメラを起動する」を押し、カメラ利用を許可します。
-3. `assets/targets/` の原画5枚を別画面に表示するか、会場用サイズで印刷します。
+3. `assets/targets/` のターゲット画像6枚を別画面に表示するか、会場用サイズで印刷します。
 4. ターゲット全体を明るい場所で枠内に映します。
 5. 正しいキャラクター名とスタンプボタンが現れることを確認します。
 6. スタンプ取得後、原画と同番号の3Dモデルが拡大・浮上して表示されることを確認します。
-7. 5ポイントすべてで、モデルの向き・大きさ・明るさ・追従を確認します。
+7. 6ポイントすべてで、モデルの向き・大きさ・明るさ・追従を確認します。
 8. ページを再読み込みし、獲得済みポイントでは3Dモデルが再表示されることを確認します。
 9. 低照度、逆光、斜め、距離、混雑時の回線で試します。
 10. SafariのプライベートブラウズやChromeのシークレットモードは保存が消えやすいため、本番案内では通常モードを推奨します。

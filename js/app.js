@@ -193,7 +193,7 @@ function onTargetLost(entry) {
   if (activeTarget !== entry) return;
   targetVisible = false;
   ui.stampCard.hidden = true;
-  ui.guideMessage.textContent = "見失いました。もう一度、子どもたちの絵を映してね";
+  ui.guideMessage.textContent = "見失いました。もう一度、会場の絵や写真を映してね";
   ui.guide.hidden = false;
 }
 
@@ -202,7 +202,7 @@ async function startAr() {
   ui.welcome.hidden = true;
   ui.arView.hidden = false;
   ui.guide.hidden = false;
-  ui.guideMessage.textContent = "子どもたちの絵を枠の中に入れてね";
+  ui.guideMessage.textContent = "会場の絵や写真を枠の中に入れてね";
   try {
     arSystem ||= scene.systems["mindar-image-system"];
     await arSystem.start();
