@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "assetVersion": "20261007-8",
+  "assetVersion": "20261010-1",
   "event": {
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
@@ -88,10 +88,22 @@
       "modelRotation": "0 0 0",
       "foundMessage": "二瀬窯業様のメモスタンドを発見！",
       "stampMessage": "二瀬窯業様のメモスタンドコレクションが3Dで登場！"
+    },
+    {
+      "id": "blue-book",
+      "targetIndex": 6,
+      "name": "みらブック",
+      "sourceImage": "./assets/targets/07_blue_book.jpeg",
+      "modelFile": "./assets/models/07_blue_book.glb",
+      "modelScale": 0.36,
+      "modelPosition": "0 -0.08 0.15",
+      "modelRotation": "0 0 0",
+      "foundMessage": "みらブックの絵を発見！",
+      "stampMessage": "絵から3Dの『みらブック』が飛び出した！"
     }
   ],
   "completion": {
-    "requiredStampCount": 6,
-    "message": "5つのキャラクターと二瀬窯業様のメモスタンドが3Dで登場！ 全スタンプコンプリート！"
+    "requiredStampCount": 7,
+    "message": "6つのキャラクターと二瀬窯業様のメモスタンドが3Dで登場！ 全スタンプコンプリート！"
   }
 }

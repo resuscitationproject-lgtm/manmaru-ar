@@ -1,4 +1,5 @@
 import { addStamp, countValidStamps, createStampStore } from "./stamp-store.js";
+import { canDisplayModel, syncModelVisibility, syncRendererSize } from "./ar-display.js?v=20261010-1";
 
 const $ = (selector) => document.querySelector(selector);
 const ui = {
@@ -24,6 +25,9 @@ let targetVisible = false;
 let successTimer = null;
 let hiddenAt = 0;
 let reloadScheduled = false;
+let layoutFrame = null;
+let cameraStopped = true;
+const targets = [];
 
 async function loadConfig() {
   const response = await fetch("./event-config.json", { cache: "no-store" });
@@ -86,8 +90,7 @@ function createTarget(point) {
     entry.modelError = false;
     revealModel(entry);
     if (activeTarget === entry) {
-      ui.discovery.textContent = `${point.name}の3Dを表示中`;
-      updateProgress();
+      scheduleLayoutSync();
     }
   });
   model.addEventListener("model-error", () => {
@@ -100,6 +103,7 @@ function createTarget(point) {
   });
   target.addEventListener("targetFound", () => onTargetFound(entry));
   target.addEventListener("targetLost", () => onTargetLost(entry));
+  targets.push(entry);
   return target;
 }
 
@@ -128,8 +132,14 @@ function makeScene() {
   camera.setAttribute("position", "0 0 0");
   camera.setAttribute("look-controls", "enabled: false");
 
-  const targets = config.points.map((point) => createTarget(point));
-  scene.append(ambientLight, directionalLight, camera, ...targets);
+  const entities = config.points.map((point) => createTarget(point));
+  scene.append(ambientLight, directionalLight, camera, ...entities);
+  scene.addEventListener("arReady", scheduleLayoutSync);
+  scene.addEventListener("rendererresize", scheduleLayoutSync);
+  scene.addEventListener("arError", () => {
+    ui.errorMessage.textContent = "カメラの利用を許可し、HTTPSのURLで開いていることを確認してください。";
+    ui.error.hidden = false;
+  });
   ui.arContainer.append(scene);
   return new Promise((resolve) => scene.addEventListener("loaded", resolve, { once: true }));
 }
@@ -146,36 +156,42 @@ function applyFinalTransform(entry) {
   }
 }
 
-function forceModelRendering(entry) {
-  entry.target.setAttribute("visible", "true");
-  entry.shadow.setAttribute("visible", "true");
-  entry.popRig.setAttribute("visible", "true");
-  entry.model.setAttribute("visible", "true");
-  if (entry.target.object3D) entry.target.object3D.visible = true;
-  if (entry.shadow.object3D) entry.shadow.object3D.visible = true;
-  if (entry.popRig.object3D) entry.popRig.object3D.visible = true;
-  if (entry.model.object3D) entry.model.object3D.visible = true;
-
+function prepareModelMesh(entry) {
   const mesh = entry.model.getObject3D?.("mesh");
   mesh?.traverse((object) => {
-    object.visible = true;
     object.frustumCulled = false;
   });
 }
 
-function maintainActiveModelVisibility() {
-  if (targetVisible && activeTarget?.modelReady) {
-    const { target, popRig, model } = activeTarget;
-    if (target.object3D) target.object3D.visible = true;
-    if (popRig.object3D) popRig.object3D.visible = true;
-    if (model.object3D) model.object3D.visible = true;
+function syncArLayout() {
+  if (!scene || ui.arView.hidden) return;
+  syncRendererSize(scene, ui.arContainer);
+  // A-Frame also resizes on rotation. Reapply MindAR's calibrated projection/video crop.
+  const system = scene.systems["mindar-image-system"];
+  if (system?.controller && system.video?.videoWidth > 0 && system.video?.videoHeight > 0 &&
+      ui.arContainer.clientWidth > 0 && ui.arContainer.clientHeight > 0) {
+    system._resize(); // Pinned MindAR 1.2.5 API; never replace its projection with our own.
   }
-  requestAnimationFrame(maintainActiveModelVisibility);
+  if (activeTarget?.targetVisible) {
+    ui.discovery.textContent = activeTarget.modelError ? "3Dモデルを読み込めませんでした。ページを再読み込みしてください。" :
+      canDisplayModel(activeTarget, scene) ? `${activePoint.name}の3Dを表示中` :
+      activeTarget.modelReady ? "3Dの表示を準備中…" : `${activePoint.name}の3Dを読み込み中…`;
+    updateProgress();
+  }
+}
+
+function scheduleLayoutSync() {
+  if (layoutFrame !== null) return;
+  layoutFrame = requestAnimationFrame(() => {
+    layoutFrame = null;
+    syncArLayout();
+  });
 }
 
 function revealModel(entry) {
   applyFinalTransform(entry);
-  forceModelRendering(entry);
+  prepareModelMesh(entry);
+  syncModelVisibility(entry);
 }
 
 function updateProgress() {
@@ -187,7 +203,7 @@ function updateProgress() {
   const loading = activeTarget && !activeTarget.modelReady && !activeTarget.modelError;
   const failed = Boolean(activeTarget?.modelError);
   ui.stamp.textContent = failed ? "3D読み込み失敗" : loading ? "3Dを準備中…" : collected ? "3Dをもう一度表示" : "スタンプを貯める";
-  ui.stamp.disabled = failed || loading;
+  ui.stamp.disabled = failed || loading || !canDisplayModel(activeTarget, scene);
 }
 
 function setEventTitle(title) {
@@ -212,12 +228,12 @@ function onTargetFound(entry) {
   ui.stampCard.hidden = false;
   updateProgress();
   if (entry.modelReady) revealModel(entry);
+  scheduleLayoutSync(); // MindAR sets the pose after dispatching targetFound.
 }
 
 function onTargetLost(entry) {
   entry.targetVisible = false;
-  entry.target.setAttribute("visible", "false");
-  if (entry.target.object3D) entry.target.object3D.visible = false;
+  syncModelVisibility(entry);
   if (activeTarget !== entry) return;
   targetVisible = false;
   ui.stampCard.hidden = true;
@@ -232,7 +248,11 @@ async function startAr() {
   ui.guide.hidden = false;
   ui.guideMessage.textContent = "会場の絵や写真を枠の中に入れてね";
   try {
+    // The scene was initialized inside a hidden section. Its canvas may still be 0×0.
+    syncArLayout();
+    scheduleLayoutSync();
     arSystem ||= scene.systems["mindar-image-system"];
+    cameraStopped = false;
     await arSystem.start();
   } catch (error) {
     console.error(error);
@@ -243,7 +263,12 @@ async function startAr() {
 }
 
 function stopAr() {
-  if (arSystem) arSystem.stop();
+  stopCameraForPageSuspend();
+  for (const entry of targets) {
+    entry.target.components["mindar-image-target"].updateWorldMatrix(null);
+    entry.targetVisible = false;
+    syncModelVisibility(entry);
+  }
   clearTimeout(successTimer);
   targetVisible = false;
   activePoint = null;
@@ -256,7 +281,10 @@ function stopAr() {
 
 function stopCameraForPageSuspend() {
   try {
-    arSystem?.stop();
+    if (!cameraStopped && arSystem?.controller && arSystem.video?.srcObject) {
+      arSystem.stop();
+      cameraStopped = true;
+    }
   } catch (error) {
     console.warn("ARの一時停止に失敗しました", error);
   }
@@ -281,12 +309,13 @@ document.addEventListener("visibilitychange", () => {
     stopCameraForPageSuspend();
     return;
   }
-  if (hiddenAt && Date.now() - hiddenAt >= 1000) reloadForFreshArSession();
+  // Even a sub-second suspension stops the camera. Do not leave that session frozen.
+  if (hiddenAt && !ui.arView.hidden) reloadForFreshArSession();
   hiddenAt = 0;
 });
 
 function collectStamp() {
-  if (!targetVisible || !activePoint || !activeTarget || !activeTarget.modelReady) return;
+  if (!targetVisible || !activePoint || !canDisplayModel(activeTarget, scene)) return;
   if (progress.stamps[activePoint.id]) {
     revealModel(activeTarget);
     return;
@@ -352,5 +381,9 @@ ui.retry.addEventListener("click", () => location.reload());
 ui.close.addEventListener("click", stopAr);
 ui.stamp.addEventListener("click", collectStamp);
 ui.continueButton.addEventListener("click", () => { ui.success.hidden = true; });
-requestAnimationFrame(maintainActiveModelVisibility);
+if (typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(scheduleLayoutSync).observe(ui.arContainer);
+}
+window.addEventListener("resize", scheduleLayoutSync);
+window.visualViewport?.addEventListener("resize", scheduleLayoutSync);
 init();

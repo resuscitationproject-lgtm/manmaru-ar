@@ -21,3 +21,13 @@ test("二瀬窯業の集合モデルは相対配置を保つ1つの親要素で�
   assert.deepEqual(wrapper.scale, [6, 6, 6]);
   assert.equal(wrapper.children.length, 31);
 });
+
+test("本キャラは部品の相対配置を保ち、撮影用床を含めない", async () => {
+  const document = await readGlbDocument("../assets/models/07_blue_book.glb");
+  const scene = document.scenes[document.scene || 0];
+  assert.equal(document.asset.extras.manmaruScaleFactor, 3);
+  assert.equal(scene.nodes.length, 1);
+  assert.deepEqual(document.nodes[scene.nodes[0]].scale, [3, 3, 3]);
+  assert.ok(document.nodes[scene.nodes[0]].children.length > 1);
+  assert.ok(!document.nodes.some(n => n.name === "Studio floor"));
+});
