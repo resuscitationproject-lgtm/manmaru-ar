@@ -28,6 +28,12 @@ test("二瀬窯業のポイントはカメ会長へ差し替え、希望コメ�
   assert.equal(point.stampMessage,point.acquiredMessage);
 });
 
+test("カメ会長だけを従来の1.7倍に拡大する", () => {
+  assert.ok(Math.abs(config.points[5].modelScale / 0.36 - 1.7) < 1e-12);
+  assert.deepEqual(config.points.filter((_,i)=>i!==5).map(p=>p.modelScale),
+    [0.34,0.38,0.36,0.38,0.32,0.36]);
+});
+
 test("既存スタンプの保存先とポイントIDを維持する", () => {
   assert.equal(config.event.id, "manmaru-bunkasai-2026");
   assert.deepEqual(config.points.slice(0, 6).map(p => p.id),

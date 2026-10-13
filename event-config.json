@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "assetVersion": "20261013-1",
+  "assetVersion": "20261013-2",
   "event": {
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
@@ -83,7 +83,7 @@
       "name": "二瀬窯業 カメ会長",
       "sourceImage": "./assets/targets/06_kame_kaicho.png",
       "modelFile": "./assets/models/06_kame_kaicho.glb",
-      "modelScale": 0.36,
+      "modelScale": 0.612,
       "modelPosition": "0 -0.08 0.15",
       "modelRotation": "0 -35 0",
       "foundMessage": "二瀬窯業様のカメ会長を発見！",
