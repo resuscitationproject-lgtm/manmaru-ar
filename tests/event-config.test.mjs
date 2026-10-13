@@ -17,6 +17,17 @@ test("7つのターゲット画像と3Dモデルが同じ番号順に設定さ�
   assert.match(config.assetVersion, /^\d{8}-\d+$/);
 });
 
+test("二瀬窯業のポイントはカメ会長へ差し替え、希望コメントを設定する", () => {
+  const point=config.points[5];
+  assert.equal(point.id,"futase-memo-stands"); // Existing stamp storage key remains unchanged.
+  assert.equal(point.targetIndex,5);
+  assert.equal(point.name,"二瀬窯業 カメ会長");
+  assert.equal(point.sourceImage,"./assets/targets/06_kame_kaicho.png");
+  assert.equal(point.modelFile,"./assets/models/06_kame_kaicho.glb");
+  assert.equal(point.acquiredMessage,"素敵なメモスタンドを作りましょう！");
+  assert.equal(point.stampMessage,point.acquiredMessage);
+});
+
 test("既存スタンプの保存先とポイントIDを維持する", () => {
   assert.equal(config.event.id, "manmaru-bunkasai-2026");
   assert.deepEqual(config.points.slice(0, 6).map(p => p.id),

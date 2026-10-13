@@ -22,6 +22,22 @@ test("二瀬窯業の集合モデルは相対配置を保つ1つの親要素で�
   assert.equal(wrapper.children.length, 31);
 });
 
+test("カメ会長は全67部品と胸文字・甲羅・表情を含み、床やカメラを含めない", async () => {
+  const document=await readGlbDocument("../assets/models/06_kame_kaicho.glb");
+  const roots=document.scenes[document.scene || 0].nodes;
+  assert.equal(roots.length,1);
+  const root=document.nodes[roots[0]];
+  assert.equal(root.name,"AR_CHARACTER_NORMALIZED");
+  assert.equal(root.children.length,67);
+  assert.ok(root.scale.every(s=>s===root.scale[0]&&s>0));
+  for(const name of ["Chest | FUTASE","Eye -1 | happy chevron","Helmet | safety green cross","Shell | rolled edge"]){
+    assert.ok(document.nodes.some(n=>n.name===name&&n.mesh!==undefined),name);
+  }
+  assert.ok(!document.nodes.some(n=>n.camera!==undefined||n.name?.startsWith("Studio |")));
+  assert.ok((document.buffers||[]).every(b=>!b.uri));
+  assert.ok((document.images||[]).every(i=>!i.uri));
+});
+
 test("本キャラは部品の相対配置を保ち、撮影用床を含めない", async () => {
   const document = await readGlbDocument("../assets/models/07_blue_book.glb");
   const scene = document.scenes[document.scene || 0];

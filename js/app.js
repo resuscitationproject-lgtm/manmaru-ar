@@ -318,6 +318,7 @@ function collectStamp() {
   if (!targetVisible || !activePoint || !canDisplayModel(activeTarget, scene)) return;
   if (progress.stamps[activePoint.id]) {
     revealModel(activeTarget);
+    if (activePoint.acquiredMessage) ui.discovery.textContent = activePoint.acquiredMessage;
     return;
   }
   const collectedPoint = activePoint;
@@ -325,14 +326,15 @@ function collectStamp() {
   progress = store.save(addStamp(progress, collectedPoint.id));
   revealModel(collectedTarget);
   updateProgress();
-  ui.discovery.textContent = `${collectedPoint.name}が3Dになって飛び出した！`;
+  ui.discovery.textContent = collectedPoint.acquiredMessage || `${collectedPoint.name}が3Dになって飛び出した！`;
 
   const count = countValidStamps(progress, config.points.map(({ id }) => id));
   const completed = count >= config.completion.requiredStampCount;
   clearTimeout(successTimer);
   successTimer = setTimeout(() => {
     ui.successTitle.textContent = completed ? "コンプリート！" : "3Dキャラ誕生！";
-    ui.successMessage.textContent = completed ? config.completion.message : collectedPoint.stampMessage;
+    ui.successMessage.textContent = completed ?
+      [collectedPoint.acquiredMessage, config.completion.message].filter(Boolean).join("\n") : collectedPoint.stampMessage;
     ui.success.hidden = false;
   }, 1700);
 }
