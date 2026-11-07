@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
-  "assetVersion": "20261013-2",
+  "assetVersion": "20261107-1",
   "event": {
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
     "title": "まんまる文化祭 ARスタンプラリー",
-    "description": "会場の絵や写真を見つけて、3Dになったキャラクターや商品に会おう！",
+    "description": "会場の絵やていたんの図柄にカメラを向けて、3Dキャラクターに会おう！",
     "heroImage": "./assets/main-visual-2026.jpg",
     "heroAlt": "BeWith まんまる文化祭 2026年11月21日・22日 10時から16時"
   },
@@ -101,10 +101,24 @@
       "modelRotation": "0 0 0",
       "foundMessage": "みらブックの絵を発見！",
       "stampMessage": "絵から3Dの『みらブック』が飛び出した！"
+    },
+    {
+      "id": "environment-guide",
+      "targetIndex": 7,
+      "name": "みどりの案内人",
+      "sourceImage": "./assets/targets/08_teitan.png",
+      "displayImage": "./assets/targets/08_teitan_full.png",
+      "modelFile": "./assets/models/08_environment_guide.glb",
+      "modelScale": 0.5,
+      "modelPosition": "0 -0.60 0.15",
+      "modelRotation": "0 -15 0",
+      "foundMessage": "ていたんの画像を発見！",
+      "acquiredMessage": "つながる・つくる・続ける。緑のある暮らしを楽しもう！",
+      "stampMessage": "つながる・つくる・続ける。緑のある暮らしを楽しもう！"
     }
   ],
   "completion": {
-    "requiredStampCount": 7,
-    "message": "みらいくの6つのキャラクターと二瀬窯業様のカメ会長に会えたね！ 全スタンプコンプリート！"
+    "requiredStampCount": 8,
+    "message": "みらいくの6つのキャラクター、カメ会長、みどりの案内人に会えたね！ 全スタンプコンプリート！"
   }
 }
