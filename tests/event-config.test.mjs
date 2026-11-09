@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import {expandImageTargets} from "../js/image-targets.js";
 
 const config = JSON.parse(await readFile(new URL("../event-config.json", import.meta.url), "utf8"));
 
@@ -49,4 +50,14 @@ test("ていたん画像を8番目の案内人モデルへ関連付ける", () =
   assert.equal(point.displayImage,"./assets/targets/08_teitan_full.png");
   assert.equal(point.modelFile,"./assets/models/08_environment_guide.glb");
   assert.equal(point.modelScale,0.5);
+});
+
+test("カメ会長のPOPを補助画像として追加し、スタンプ数と1.7倍表示を保つ", () => {
+ const expanded=expandImageTargets(config.points);
+ assert.equal(expanded.length,9);assert.equal(new Set(expanded.map(p=>p.id)).size,8);
+ assert.deepEqual(expanded.map(p=>p.targetIndex),[0,1,2,3,4,5,6,7,8]);
+ const pop=expanded[8];assert.equal(pop.id,config.points[5].id);
+ assert.equal(pop.modelFile,config.points[5].modelFile);assert.equal(pop.modelScale,.612);
+ assert.equal(pop.sourceImage,'./assets/targets/06_kame_kaicho_pop.png');
+ assert.equal(config.completion.requiredStampCount,8);
 });

@@ -1,5 +1,7 @@
 import { addStamp, countValidStamps, createStampStore } from "./stamp-store.js";
 import { canDisplayModel, syncModelVisibility, syncRendererSize } from "./ar-display.js?v=20261010-1";
+import { expandImageTargets } from "./image-targets.js?v=20261109-1";
+import { createModelCache } from "./model-cache.js?v=20261109-1";
 
 const $ = (selector) => document.querySelector(selector);
 const ui = {
@@ -28,6 +30,18 @@ let reloadScheduled = false;
 let layoutFrame = null;
 let cameraStopped = true;
 const targets = [];
+const modelCache=createModelCache({
+  start(entry,url){
+    entry.model.removeAttribute("gltf-model");
+    entry.model.setAttribute("gltf-model",url);
+  },
+  attach(entry,source){
+    const mesh=source.clone(true);
+    entry.model.setObject3D("mesh",mesh);
+    entry.model.emit("model-loaded",{format:"gltf",model:mesh});
+  },
+  fail(entry,error){entry.model.emit("model-error",error);}
+});
 
 async function loadConfig() {
   const response = await fetch("./event-config.json", { cache: "no-store" });
@@ -54,7 +68,8 @@ function loadModel(entry) {
   if (entry.modelReady || entry.modelRequested) return;
   entry.modelRequested = true;
   entry.modelError = false;
-  entry.model.setAttribute("gltf-model", assetUrl(entry.point.modelFile));
+  entry.modelUrl=assetUrl(entry.point.modelFile);
+  modelCache.request(entry.modelUrl,entry);
 }
 
 function createTarget(point) {
@@ -62,7 +77,7 @@ function createTarget(point) {
   target.setAttribute("mindar-image-target", `targetIndex: ${point.targetIndex}`);
 
   const shadow = document.createElement("a-circle");
-  shadow.setAttribute("position", "0 -0.38 0.03");
+  shadow.setAttribute("position", point.shadowPosition || "0 -0.38 0.03");
   shadow.setAttribute("rotation", "-90 0 0");
   shadow.setAttribute("radius", "0.34");
   shadow.setAttribute("material", "color: #111; opacity: 0.22; transparent: true; shader: flat");
@@ -86,14 +101,17 @@ function createTarget(point) {
     targetVisible: false
   };
   model.addEventListener("model-loaded", () => {
+    if(!model.getObject3D("mesh"))return;
     entry.modelReady = true;
     entry.modelError = false;
+    modelCache.loaded(entry.modelUrl,entry,model.getObject3D("mesh"));
     revealModel(entry);
     if (activeTarget === entry) {
       scheduleLayoutSync();
     }
   });
-  model.addEventListener("model-error", () => {
+  model.addEventListener("model-error", (event) => {
+    modelCache.failed(entry.modelUrl,entry,event.detail);
     entry.modelRequested = false;
     entry.modelError = true;
     if (activeTarget === entry) {
@@ -132,7 +150,7 @@ function makeScene() {
   camera.setAttribute("position", "0 0 0");
   camera.setAttribute("look-controls", "enabled: false");
 
-  const entities = config.points.map((point) => createTarget(point));
+  const entities = expandImageTargets(config.points).map((point) => createTarget(point));
   scene.append(ambientLight, directionalLight, camera, ...entities);
   scene.addEventListener("arReady", scheduleLayoutSync);
   scene.addEventListener("rendererresize", scheduleLayoutSync);
@@ -237,7 +255,7 @@ function onTargetLost(entry) {
   if (activeTarget !== entry) return;
   targetVisible = false;
   ui.stampCard.hidden = true;
-  ui.guideMessage.textContent = "見失いました。もう一度、会場の絵や写真を映してね";
+  ui.guideMessage.textContent = "絵を大きく映して、スマホを少し止めてね";
   ui.guide.hidden = false;
 }
 
@@ -246,7 +264,7 @@ async function startAr() {
   ui.welcome.hidden = true;
   ui.arView.hidden = false;
   ui.guide.hidden = false;
-  ui.guideMessage.textContent = "会場の絵や写真を枠の中に入れてね";
+  ui.guideMessage.textContent = "絵を枠に大きく入れて、スマホを少し止めてね";
   try {
     // The scene was initialized inside a hidden section. Its canvas may still be 0×0.
     syncArLayout();

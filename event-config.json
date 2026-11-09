@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "assetVersion": "20261107-1",
+  "assetVersion": "20261109-1",
   "event": {
     "id": "manmaru-bunkasai-2026",
     "name": "まんまる文化祭",
@@ -82,6 +82,12 @@
       "targetIndex": 5,
       "name": "二瀬窯業 カメ会長",
       "sourceImage": "./assets/targets/06_kame_kaicho.png",
+      "targetVariants": [{
+        "targetIndex": 8,
+        "sourceImage": "./assets/targets/06_kame_kaicho_pop.png",
+        "modelPosition": "0 -0.01684895833333333 0.15",
+        "shadowPosition": "0 -0.31684895833333335 0.03"
+      }],
       "modelFile": "./assets/models/06_kame_kaicho.glb",
       "modelScale": 0.612,
       "modelPosition": "0 -0.08 0.15",
