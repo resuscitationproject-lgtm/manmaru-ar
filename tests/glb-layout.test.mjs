@@ -22,19 +22,6 @@ test("二瀬窯業の集合モデルは相対配置を保つ1つの親要素で�
   assert.equal(wrapper.children.length, 31);
 });
 
-test("案内人は写真板ではなく人物と付属品の立体で、私的参考画像を含まない", async () => {
-  const document=await readGlbDocument("../assets/models/08_environment_guide.glb");
-  assert.equal(document.scenes[document.scene||0].nodes.length,1);
-  assert.ok(document.meshes.length>100);
-  for(const name of ["Face | sculpted head","Plant | terracotta pot","Yoga | rolled purple mat"]){
-    assert.ok(document.nodes.some(n=>n.name===name&&n.mesh!==undefined));
-  }
-  assert.equal((document.images||[]).length,0);
-  assert.equal((document.cameras||[]).length,0);
-  assert.ok(document.buffers.every(b=>!b.uri));
-  assert.ok(!document.nodes.some(n=>n.name==='Studio floor'||n.name?.includes('reference')));
-});
-
 test("カメ会長は全67部品と胸文字・甲羅・表情を含み、床やカメラを含めない", async () => {
   const document=await readGlbDocument("../assets/models/06_kame_kaicho.glb");
   const roots=document.scenes[document.scene || 0].nodes;

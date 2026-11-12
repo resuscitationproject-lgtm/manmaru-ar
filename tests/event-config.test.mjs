@@ -2,18 +2,19 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {expandImageTargets} from "../js/image-targets.js";
+import {countValidStamps, normalizeProgress} from "../js/stamp-store.js";
 
 const config = JSON.parse(await readFile(new URL("../event-config.json", import.meta.url), "utf8"));
 
-test("8つのターゲット画像と3Dモデルが同じ番号順に設定されている", () => {
-  assert.equal(config.points.length, 8);
-  assert.deepEqual(config.points.map(({ targetIndex }) => targetIndex), [0, 1, 2, 3, 4, 5, 6, 7]);
+test("7つのターゲット画像と3Dモデルが同じ番号順に設定されている", () => {
+  assert.equal(config.points.length, 7);
+  assert.deepEqual(config.points.map(({ targetIndex }) => targetIndex), [0, 1, 2, 3, 4, 5, 6]);
   config.points.forEach((point, index) => {
     const number = String(index + 1).padStart(2, "0");
     assert.match(point.sourceImage, new RegExp(`${number}_`));
     assert.match(point.modelFile, new RegExp(`${number}_`));
   });
-  assert.equal(config.completion.requiredStampCount, 8);
+  assert.equal(config.completion.requiredStampCount, 7);
   assert.ok(config.ar.missTolerance >= 15);
   assert.match(config.assetVersion, /^\d{8}-\d+$/);
 });
@@ -42,22 +43,21 @@ test("既存スタンプの保存先とポイントIDを維持する", () => {
   assert.equal(config.points[6].id, "blue-book");
 });
 
-test("ていたん画像を8番目の案内人モデルへ関連付ける", () => {
-  const point=config.points[7];
-  assert.equal(point.id,"environment-guide");
-  assert.equal(point.targetIndex,7);
-  assert.equal(point.sourceImage,"./assets/targets/08_teitan.png");
-  assert.equal(point.displayImage,"./assets/targets/08_teitan_full.png");
-  assert.equal(point.modelFile,"./assets/models/08_environment_guide.glb");
-  assert.equal(point.modelScale,0.5);
+test("削除前の8点の保存記録でも、残り7点を維持して7点満了として扱う", () => {
+  const stamps=Object.fromEntries([...config.points.map(p=>p.id),"environment-guide"].map(id=>[id,"2026-11-09T00:00:00.000Z"]));
+  const saved={version:1,eventId:config.event.id,stamps,updatedAt:null};
+  const restored=normalizeProgress(saved,config.event.id);
+  assert.equal(countValidStamps(restored,config.points.map(p=>p.id)),7);
+  for(const point of config.points)assert.equal(restored.stamps[point.id],stamps[point.id]);
+  assert.ok(!config.points.some(p=>p.id==="environment-guide"));
 });
 
 test("カメ会長のPOPを補助画像として追加し、スタンプ数と1.7倍表示を保つ", () => {
  const expanded=expandImageTargets(config.points);
- assert.equal(expanded.length,9);assert.equal(new Set(expanded.map(p=>p.id)).size,8);
- assert.deepEqual(expanded.map(p=>p.targetIndex),[0,1,2,3,4,5,6,7,8]);
- const pop=expanded[8];assert.equal(pop.id,config.points[5].id);
+ assert.equal(expanded.length,8);assert.equal(new Set(expanded.map(p=>p.id)).size,7);
+ assert.deepEqual(expanded.map(p=>p.targetIndex),[0,1,2,3,4,5,6,7]);
+ const pop=expanded[7];assert.equal(pop.id,config.points[5].id);
  assert.equal(pop.modelFile,config.points[5].modelFile);assert.equal(pop.modelScale,.612);
  assert.equal(pop.sourceImage,'./assets/targets/06_kame_kaicho_pop.png');
- assert.equal(config.completion.requiredStampCount,8);
+ assert.equal(config.completion.requiredStampCount,7);
 });
