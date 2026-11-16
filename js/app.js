@@ -2,6 +2,7 @@ import { addStamp, countValidStamps, createStampStore } from "./stamp-store.js";
 import { canDisplayModel, syncModelVisibility, syncRendererSize } from "./ar-display.js?v=20261010-1";
 import { expandImageTargets } from "./image-targets.js?v=20261109-1";
 import { createModelCache } from "./model-cache.js?v=20261109-1";
+import { isComplete } from "./completion.js?v=20261116-1";
 
 const $ = (selector) => document.querySelector(selector);
 const ui = {
@@ -332,8 +333,18 @@ document.addEventListener("visibilitychange", () => {
   hiddenAt = 0;
 });
 
+function goToCompletion() {
+  clearTimeout(successTimer);
+  stopCameraForPageSuspend();
+  window.location.replace(new URL("./complete.html", window.location.href).href);
+}
+
 function collectStamp() {
   if (!targetVisible || !activePoint || !canDisplayModel(activeTarget, scene)) return;
+  if (isComplete(progress, config)) {
+    goToCompletion();
+    return;
+  }
   if (progress.stamps[activePoint.id]) {
     revealModel(activeTarget);
     if (activePoint.acquiredMessage) ui.discovery.textContent = activePoint.acquiredMessage;
@@ -342,17 +353,18 @@ function collectStamp() {
   const collectedPoint = activePoint;
   const collectedTarget = activeTarget;
   progress = store.save(addStamp(progress, collectedPoint.id));
+  if (isComplete(progress, config)) {
+    goToCompletion();
+    return;
+  }
   revealModel(collectedTarget);
   updateProgress();
   ui.discovery.textContent = collectedPoint.acquiredMessage || `${collectedPoint.name}が3Dになって飛び出した！`;
 
-  const count = countValidStamps(progress, config.points.map(({ id }) => id));
-  const completed = count >= config.completion.requiredStampCount;
   clearTimeout(successTimer);
   successTimer = setTimeout(() => {
-    ui.successTitle.textContent = completed ? "コンプリート！" : "3Dキャラ誕生！";
-    ui.successMessage.textContent = completed ?
-      [collectedPoint.acquiredMessage, config.completion.message].filter(Boolean).join("\n") : collectedPoint.stampMessage;
+    ui.successTitle.textContent = "3Dキャラ誕生！";
+    ui.successMessage.textContent = collectedPoint.stampMessage;
     ui.success.hidden = false;
   }, 1700);
 }
@@ -376,6 +388,10 @@ async function init() {
     config = await loadConfig();
     store = createStampStore(config.event.id);
     progress = store.load();
+    if (isComplete(progress, config)) {
+      goToCompletion();
+      return;
+    }
     document.title = config.event.title;
     setEventTitle(config.event.title);
     ui.description.textContent = config.event.description;
